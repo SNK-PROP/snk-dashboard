@@ -1,119 +1,261 @@
+"use client";
+import { useState, useEffect } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { DataTable } from "@/components/data-table";
-
-const tableData = [
-  {
-    id: 1,
-    header: "Cover page",
-    type: "Cover page",
-    status: "In Process",
-    target: "18",
-    limit: "5",
-    reviewer: "Eddie Lake",
-  },
-  {
-    id: 2,
-    header: "Table of contents",
-    type: "Table of contents",
-    status: "Done",
-    target: "29",
-    limit: "24",
-    reviewer: "Eddie Lake",
-  },
-  {
-    id: 3,
-    header: "Executive summary",
-    type: "Narrative",
-    status: "Done",
-    target: "10",
-    limit: "13",
-    reviewer: "Eddie Lake",
-  },
-  {
-    id: 4,
-    header: "Technical approach",
-    type: "Narrative",
-    status: "Done",
-    target: "27",
-    limit: "23",
-    reviewer: "Jamik Tashpulatov",
-  },
-  {
-    id: 5,
-    header: "Design",
-    type: "Narrative",
-    status: "In Process",
-    target: "2",
-    limit: "16",
-    reviewer: "Jamik Tashpulatov",
-  },
-  {
-    id: 6,
-    header: "Capabilities",
-    type: "Narrative",
-    status: "In Process",
-    target: "20",
-    limit: "8",
-    reviewer: "Jamik Tashpulatov",
-  },
-  {
-    id: 7,
-    header: "Integration with existing systems",
-    type: "Narrative",
-    status: "In Process",
-    target: "19",
-    limit: "21",
-    reviewer: "Jamik Tashpulatov",
-  },
-  {
-    id: 8,
-    header: "Innovation and Advantages",
-    type: "Narrative",
-    status: "Done",
-    target: "25",
-    limit: "26",
-    reviewer: "Assign reviewer",
-  },
-  {
-    id: 9,
-    header: "Overview of EMR's Innovative Solutions",
-    type: "Technical content",
-    status: "Done",
-    target: "7",
-    limit: "23",
-    reviewer: "Assign reviewer",
-  },
-  {
-    id: 10,
-    header: "Advanced Algorithms and Machine Learning",
-    type: "Narrative",
-    status: "Done",
-    target: "30",
-    limit: "28",
-    reviewer: "Assign reviewer",
-  },
-];
+import axios from "axios";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { IconDotsVertical } from "@tabler/icons-react";
 
 export default function Page() {
+  const [tableData, setTableData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [remark, setRemark] = useState("");
+
+  const fetchData = async () => {
+    try {
+      setLoading(true); // Set loading to true before fetching
+      const config = {
+        method: "get",
+        maxBodyLength: Infinity,
+        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}medicals`,
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("userToken")}`,
+        },
+      };
+
+      const response = await axios.request(config);
+      const medicalData = response.data.data.map((item, index) => ({
+        id: index + 1,
+        _id: item._id,
+        medical_name: item.medical_name,
+        owner_name: item.owner_name,
+        phone_number: item.phone_number,
+        approved: item.approved ? "Approved" : "Disapproved",
+      }));
+      setTableData(medicalData);
+      setError(null); // Clear any previous errors
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setError("Failed to fetch medical data");
+    } finally {
+      setLoading(false); // Ensure loading is set to false
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleStatusChange = async () => {
+    if (!selectedRow) return;
+
+    try {
+      const newApproved =
+        selectedRow.getValue("approved") === "Approved" ? false : true;
+      const config = {
+        method: "patch",
+        maxBodyLength: Infinity,
+        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}verifyMedical/${selectedRow.original._id}`,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("userToken")}`,
+        },
+        data: JSON.stringify({
+          approved: newApproved,
+          medicalRemarks: remark || "",
+          paymentStatus: "paid",
+        }),
+      };
+
+      const response = await axios.request(config)
+
+      // Auto-refresh by refetching data
+      await fetchData();
+
+      setOpenDialog(false);
+      setRemark("");
+      toast.success("Status updated successfully!", {
+        style: {
+          backgroundColor: "#DCFCE7",
+          color: "#166534",
+          borderColor: "#16A34A",
+        },
+      });
+    } catch (error) {
+      console.error("Error updating status:", error);
+      setError("Failed to update medical status");
+      toast.error("Failed to update status. Please try again.", {
+        style: {
+          backgroundColor: "#FEE2E2",
+          color: "#991B1B",
+          borderColor: "#EF4444",
+        },
+      });
+    }
+  };
+
+  const columns = [
+    {
+      accessorKey: "id",
+      header: "Serial Number",
+    },
+    {
+      accessorKey: "medical_name",
+      header: "Medical Name",
+    },
+    {
+      accessorKey: "owner_name",
+      header: "Owner Name",
+    },
+    {
+      accessorKey: "phone_number",
+      header: "Phone Number",
+    },
+    {
+      accessorKey: "approved",
+      header: "Status",
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const isApproved = row.getValue("approved") === "Approved";
+        const actionText = isApproved ? "Disapproved" : "Approved";
+        const textColor = isApproved ? "text-red-600" : "text-green-600";
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+                size="icon"
+              >
+                <IconDotsVertical />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem
+                className={`${textColor} flex items-center gap-2 font-medium`}
+                onClick={() => {
+                  setSelectedRow(row);
+                  setOpenDialog(true);
+                }}
+              >
+                {actionText}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
+
+  if (loading) {
+    return (
+      <SidebarProvider>
+        <AppSidebar variant="inset" />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="flex flex-1 flex-col items-center justify-start w-full min-h-0">
+            <div className="w-full max-w-6xl flex flex-col gap-0 mt-8">
+              <h1 className="text-2xl font-bold mb-1">Medicals Page</h1>
+              <p className="text-muted-foreground mb-4">Loading...</p>
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
+
+  if (error) {
+    return (
+      <SidebarProvider>
+        <AppSidebar variant="inset" />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="flex flex-1 flex-col items-center justify-start w-full min-h-0">
+            <div className="w-full max-w-6xl flex flex-col gap-0 mt-8">
+              <h1 className="text-2xl font-bold mb-1">Medicals Page</h1>
+              <p className="text-muted-foreground mb-4 text-red-500">{error}</p>
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
+
   return (
-    <SidebarProvider
-      style={{
-        "--sidebar-width": "calc(var(--spacing) * 72)",
-        "--header-height": "calc(var(--spacing) * 12)",
-      }}
-    >
+    <SidebarProvider>
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <h1 className="text-2xl font-bold mb-4">Medicals Page</h1>
-            <DataTable data={tableData} />
+        <div className="flex flex-1 flex-col items-center justify-start w-full min-h-0">
+          <div className="w-full max-w-6xl flex flex-col gap-0 mt-8">
+            <h1 className="text-2xl font-bold mb-1">Medicals Page</h1>
+            <p className="text-muted-foreground mb-4">
+              Manage your medicals and their details.
+            </p>
+            <div className="rounded-xl overflow-hidden mt-10">
+              <DataTable data={tableData} columns={columns} />
+            </div>
           </div>
         </div>
       </SidebarInset>
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Approvals</DialogTitle>
+            <DialogDescription className="text-gray-500">
+              Make changes to your approvals here. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="remark" className="text-right">
+                Remark
+              </label>
+              <input
+                id="remark"
+                value={remark}
+                onChange={(e) => setRemark(e.target.value)}
+                className="col-span-3 border-blue-700 rounded-md p-2"
+                placeholder="Enter remark"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setOpenDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="default" onClick={handleStatusChange}>
+              Save changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }
