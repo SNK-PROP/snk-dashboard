@@ -29,6 +29,7 @@ import { useRouter } from "next/navigation";
 export function NavUser({ user }) {
   const { isMobile } = useSidebar();
   const router = useRouter();
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -75,6 +76,8 @@ export function NavUser({ user }) {
             <DropdownMenuItem
               onClick={() => {
                 localStorage.removeItem("userToken");
+                localStorage.removeItem("userName");
+                localStorage.removeItem("userEmail");
                 router.push("/login");
               }}
               variant="destructive"

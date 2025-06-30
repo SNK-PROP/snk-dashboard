@@ -39,9 +39,15 @@ import {
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name:
+      typeof window !== "undefined"
+        ? localStorage.getItem("userName") || "User"
+        : "User",
+    email:
+      typeof window !== "undefined"
+        ? localStorage.getItem("userEmail") || "email@example.com"
+        : "email@example.com",
+    avatar: "/default-avatar.png",
   },
   navMain: [
     {
@@ -133,7 +139,7 @@ export function AppSidebar({ ...props }) {
       <SidebarHeader className="border-b border-gray-200 dark:border-zinc-800 py-2 flex items-center w-full overflow-hidden">
         <div className="flex items-center gap-3">
           <img
-            src="https://med1india.com/wp-content/uploads/2025/04/Screenshot-2025-04-08-at-01.15.00-1.png"
+            src="logo.png"
             alt="Logo"
             className="h-25 w-100 object-cover rounded-[10px]"
           />

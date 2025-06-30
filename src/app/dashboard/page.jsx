@@ -37,7 +37,7 @@ export default function Page() {
           ...item,
           id: item._id,
           serial_number: index + 1,
-          approved: item.approved ? "Approved" : "Disapproved",
+          approved: item.approved ? "Approved" : "Rejected",
         }));
         setData(medicalData);
         setLoading(false);

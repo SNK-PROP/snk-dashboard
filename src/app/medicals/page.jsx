@@ -52,7 +52,7 @@ export default function Page() {
         medical_name: item.medical_name,
         owner_name: item.owner_name,
         phone_number: item.phone_number,
-        approved: item.approved ? "Approved" : "Disapproved",
+        approved: item.approved ? "Approved" : "Rejected",
       }));
       setTableData(medicalData);
       setError(null); // Clear any previous errors
@@ -141,7 +141,7 @@ export default function Page() {
       id: "actions",
       cell: ({ row }) => {
         const isApproved = row.getValue("approved") === "Approved";
-        const actionText = isApproved ? "Disapproved" : "Approved";
+        const actionText = isApproved ? "Reject" : "Approve";
         const textColor = isApproved ? "text-red-600" : "text-green-600";
 
         return (

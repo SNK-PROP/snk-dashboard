@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label";
 import axios from "axios";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
+
 export function LoginForm({ className, ...props }) {
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -33,14 +33,13 @@ export function LoginForm({ className, ...props }) {
           "Content-Type": "application/json",
         },
         data: {
-          email,
           type: "mobile",
           mobile: phone,
         },
       };
 
       const response = await axios.request(config);
-
+      console.log("Send OTP Response:", response.data);
       setLoading(false);
       setStep(2);
     } catch (error) {
@@ -54,7 +53,7 @@ export function LoginForm({ className, ...props }) {
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
-        "Failed to send OTP. Please check your email and phone number and try again.";
+        "Failed to send OTP. Please check your phone number and try again.";
       setError(errorMessage);
     }
   };
@@ -81,9 +80,22 @@ export function LoginForm({ className, ...props }) {
       };
 
       const response = await axios.request(config);
+      console.log("Verify OTP Response:", response.data);
 
       if (response.data.success && response.data.userToken) {
-        localStorage.setItem("userToken", response.data.userToken);
+        const { userToken, user } = response.data;
+
+        // Store values in localStorage, relying only on API response
+        localStorage.setItem("userToken", userToken);
+        localStorage.setItem("userName", user?.fullName || "User");
+        localStorage.setItem("userEmail", user?.email || "no-email");
+
+        console.log("Stored Values:", {
+          userToken,
+          userName: user?.fullName || "User",
+          userEmail: user?.email || "no-email",
+        });
+
         setLoading(false);
         toast.success("Log in successfully", {
           style: {
