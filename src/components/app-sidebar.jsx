@@ -37,18 +37,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-const data = {
-  user: {
-    name:
-      typeof window !== "undefined"
-        ? localStorage.getItem("userName") || "User"
-        : "User",
-    email:
-      typeof window !== "undefined"
-        ? localStorage.getItem("userEmail") || "email@example.com"
-        : "email@example.com",
-    avatar: "/default-avatar.png",
-  },
+const staticData = {
   navMain: [
     {
       title: "Dashboard",
@@ -134,6 +123,23 @@ const data = {
 };
 
 export function AppSidebar({ ...props }) {
+  const [user, setUser] = React.useState({
+    name: "User",
+    email: "email@example.com",
+    avatar: "/default-avatar.png",
+  });
+
+  React.useEffect(() => {
+    const storedName = localStorage.getItem("userName");
+    const storedEmail = localStorage.getItem("userEmail");
+
+    setUser({
+      name: storedName || "User",
+      email: storedEmail || "email@example.com",
+      avatar: "/default-avatar.png",
+    });
+  }, []);
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader className="border-b border-gray-200 dark:border-zinc-800 py-2 flex items-center w-full overflow-hidden">
@@ -146,11 +152,11 @@ export function AppSidebar({ ...props }) {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={staticData.navMain} />
+        <NavSecondary items={staticData.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   );

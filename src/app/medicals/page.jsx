@@ -119,7 +119,7 @@ export default function Page() {
   const columns = [
     {
       accessorKey: "id",
-      header: "Serial Number",
+      header: "S.No",
     },
     {
       accessorKey: "medical_name",
