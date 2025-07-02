@@ -145,7 +145,7 @@ export function AppSidebar({ ...props }) {
       <SidebarHeader className="border-b border-gray-200 dark:border-zinc-800 py-2 flex items-center w-full overflow-hidden">
         <div className="flex items-center gap-3">
           <img
-            src="logo.png"
+            src="/logo.png"
             alt="Logo"
             className="h-25 w-100 object-cover rounded-[10px]"
           />

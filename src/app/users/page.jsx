@@ -13,16 +13,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { IconDotsVertical } from "@tabler/icons-react";
+import { IconDotsVertical, IconX } from "@tabler/icons-react";
 import { toast } from "sonner";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const userColumns = [
   { accessorKey: "id", header: "S.No" },
@@ -32,23 +43,34 @@ const userColumns = [
   { accessorKey: "address", header: "Address" },
   {
     id: "actions",
-    cell: () => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-            size="icon"
-          >
-            <IconDotsVertical />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem>Edit</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
+    cell: ({ row }) => {
+      const user = row.original;
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+              size="icon"
+            >
+              <IconDotsVertical />
+              <span className="sr-only">Open menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-32">
+            <DropdownMenuItem
+              onSelect={() => {
+                window.dispatchEvent(
+                  new CustomEvent("editUser", { detail: user })
+                );
+              }}
+            >
+              Edit
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    },
   },
 ];
 
@@ -56,13 +78,20 @@ export default function Page() {
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [openDialog, setOpenDialog] = useState(false);
+  const [openSheet, setOpenSheet] = useState(false);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [newUser, setNewUser] = useState({
     fullName: "",
     email: "",
     mobile: "",
     address: "",
+    houseNumber: "",
+    landmark: "",
+    city: "",
+    state: "",
+    pincode: "",
   });
+  const [editUser, setEditUser] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -93,6 +122,7 @@ export default function Page() {
           email: item.email || "N/A",
           mobile: item.mobile || "N/A",
           address,
+          original: item, // Store original data for editing
         };
       });
       setTableData(userData);
@@ -114,6 +144,25 @@ export default function Page() {
 
   useEffect(() => {
     fetchData();
+    const handleEditUser = (event) => {
+      const user = event.detail;
+      setEditUser(user);
+      setEditSheetOpen(true);
+      setNewUser({
+        fullName: user.fullName || "",
+        email: user.email || "",
+        mobile: user.mobile || "",
+        houseNumber: user.address.split(",")[0] || "",
+        landmark: user.address.split(",")[1] || "",
+        city: user.address.split(",")[2] || "",
+        pincode: user.address.split(",")[3] || "",
+        state:
+          user.original.addresses?.find((addr) => addr.tag === "home")?.state ||
+          "",
+      });
+    };
+    window.addEventListener("editUser", handleEditUser);
+    return () => window.removeEventListener("editUser", handleEditUser);
   }, []);
 
   const handleAddUser = async () => {
@@ -131,19 +180,30 @@ export default function Page() {
           addresses: [
             {
               tag: "home",
-              houseNumber: newUser.address.split(",")[0] || "",
-              landmark: newUser.address.split(",")[1] || "",
-              city: newUser.address.split(",")[2] || "",
-              pincode: newUser.address.split(",")[3] || "",
+              houseNumber: newUser.houseNumber || "",
+              landmark: newUser.landmark || "",
+              city: newUser.city || "",
+              state: newUser.state || "",
+              pincode: newUser.pincode || "",
             },
           ],
         }),
       };
 
       await axios.request(config);
-      await fetchData(); // Refresh data after adding
-      setOpenDialog(false);
-      setNewUser({ fullName: "", email: "", mobile: "", address: "" });
+      await fetchData();
+      setOpenSheet(false);
+      setNewUser({
+        fullName: "",
+        email: "",
+        mobile: "",
+        address: "",
+        houseNumber: "",
+        landmark: "",
+        city: "",
+        state: "",
+        pincode: "",
+      });
       toast.success("User added successfully!", {
         style: {
           backgroundColor: "#DCFCE7",
@@ -154,6 +214,65 @@ export default function Page() {
     } catch (error) {
       console.error("Error adding user:", error);
       toast.error("Failed to add user. Please try again.", {
+        style: {
+          backgroundColor: "#FEE2E2",
+          color: "#991B1B",
+          borderColor: "#EF4444",
+        },
+      });
+    }
+  };
+
+  const handleEditUser = async () => {
+    try {
+      const config = {
+        method: "put",
+        maxBodyLength: Infinity,
+        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}users/${editUser.original._id}`,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("userToken")}`,
+        },
+        data: JSON.stringify({
+          ...newUser,
+          addresses: [
+            {
+              tag: "home",
+              houseNumber: newUser.houseNumber || "",
+              landmark: newUser.landmark || "",
+              city: newUser.city || "",
+              state: newUser.state || "",
+              pincode: newUser.pincode || "",
+            },
+          ],
+        }),
+      };
+
+      await axios.request(config);
+      await fetchData();
+      setEditSheetOpen(false);
+      setEditUser(null);
+      setNewUser({
+        fullName: "",
+        email: "",
+        mobile: "",
+        address: "",
+        houseNumber: "",
+        landmark: "",
+        city: "",
+        state: "",
+        pincode: "",
+      });
+      toast.success("User updated successfully!", {
+        style: {
+          backgroundColor: "#DCFCE7",
+          color: "#166534",
+          borderColor: "#16A34A",
+        },
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      toast.error("Failed to update user. Please try again.", {
         style: {
           backgroundColor: "#FEE2E2",
           color: "#991B1B",
@@ -211,20 +330,29 @@ export default function Page() {
                   Manage your users and their details.
                 </p>
               </div>
-              <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-                <DialogTrigger asChild>
+              <Sheet open={openSheet} onOpenChange={setOpenSheet}>
+                <SheetTrigger asChild>
                   <Button variant="default">Add User</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add New User</DialogTitle>
-                    <DialogDescription>
+                </SheetTrigger>
+                <SheetContent className="max-w-md w-full p-0 bg-white shadow-lg flex flex-col">
+                  <SheetHeader className="px-6 pt-6">
+                    <SheetTitle>Add New User</SheetTitle>
+                    <SheetDescription>
                       Enter user details below. Click save when you're done.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <label htmlFor="fullName" className="text-right">
+                    </SheetDescription>
+                  </SheetHeader>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleAddUser();
+                    }}
+                    className="flex flex-col gap-4 flex-1 px-6 mb-6 mt-4"
+                  >
+                    <div>
+                      <label
+                        htmlFor="fullName"
+                        className="block text-sm font-medium mb-1"
+                      >
                         Full Name
                       </label>
                       <input
@@ -233,12 +361,15 @@ export default function Page() {
                         onChange={(e) =>
                           setNewUser({ ...newUser, fullName: e.target.value })
                         }
-                        className="col-span-3 border-blue-700 rounded-md p-2"
+                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
                         placeholder="Enter full name"
                       />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <label htmlFor="email" className="text-right">
+                    <div>
+                      <label
+                        htmlFor="email"
+                        className="block text-sm font-medium mb-1"
+                      >
                         Email
                       </label>
                       <input
@@ -247,12 +378,15 @@ export default function Page() {
                         onChange={(e) =>
                           setNewUser({ ...newUser, email: e.target.value })
                         }
-                        className="col-span-3 border-blue-700 rounded-md p-2"
+                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
                         placeholder="Enter email"
                       />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <label htmlFor="mobile" className="text-right">
+                    <div>
+                      <label
+                        htmlFor="mobile"
+                        className="block text-sm font-medium mb-1"
+                      >
                         Phone Number
                       </label>
                       <input
@@ -261,39 +395,289 @@ export default function Page() {
                         onChange={(e) =>
                           setNewUser({ ...newUser, mobile: e.target.value })
                         }
-                        className="col-span-3 border-blue-700 rounded-md p-2"
+                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
                         placeholder="Enter phone number"
                       />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <label htmlFor="address" className="text-right">
-                        Address
+                    <div>
+                      <label
+                        htmlFor="houseNumber"
+                        className="block text-sm font-medium mb-1"
+                      >
+                        House Number
                       </label>
                       <input
-                        id="address"
-                        value={newUser.address}
+                        id="houseNumber"
+                        value={newUser.houseNumber}
                         onChange={(e) =>
-                          setNewUser({ ...newUser, address: e.target.value })
+                          setNewUser({
+                            ...newUser,
+                            houseNumber: e.target.value,
+                          })
                         }
-                        className="col-span-3 border-blue-700 rounded-md p-2"
-                        placeholder="Enter address (e.g., houseNumber, landmark, city, pincode)"
+                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
+                        placeholder="Enter House Number"
                       />
                     </div>
+                    <div>
+                      <label
+                        htmlFor="landmark"
+                        className="block text-sm font-medium mb-1"
+                      >
+                        Landmark
+                      </label>
+                      <input
+                        id="landmark"
+                        value={newUser.landmark}
+                        onChange={(e) =>
+                          setNewUser({ ...newUser, landmark: e.target.value })
+                        }
+                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
+                        placeholder="Enter Landmark"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="city"
+                        className="block text-sm font-medium mb-1"
+                      >
+                        City
+                      </label>
+                      <input
+                        id="city"
+                        value={newUser.city}
+                        onChange={(e) =>
+                          setNewUser({ ...newUser, city: e.target.value })
+                        }
+                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
+                        placeholder="Enter City"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="state"
+                        className="block text-sm font-medium mb-1"
+                      >
+                        State
+                      </label>
+                      <input
+                        id="state"
+                        value={newUser.state}
+                        onChange={(e) =>
+                          setNewUser({ ...newUser, state: e.target.value })
+                        }
+                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
+                        placeholder="Enter State"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="pincode"
+                        className="block text-sm font-medium mb-1"
+                      >
+                        Pincode
+                      </label>
+                      <input
+                        id="pincode"
+                        value={newUser.pincode}
+                        onChange={(e) =>
+                          setNewUser({ ...newUser, pincode: e.target.value })
+                        }
+                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
+                        placeholder="Enter Pincode"
+                      />
+                    </div>
+                    <div className="mt-auto flex flex-col gap-3">
+                      <Button
+                        variant="default"
+                        type="submit"
+                        className="w-full"
+                      >
+                        Save User
+                      </Button>
+                      <Button
+                        variant="outline"
+                        type="button"
+                        onClick={() => setOpenSheet(false)}
+                        className="w-full"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </SheetContent>
+              </Sheet>
+            </div>
+            <Sheet open={editSheetOpen} onOpenChange={setEditSheetOpen}>
+              <SheetContent className="max-w-md w-full p-0 bg-white shadow-lg flex flex-col">
+                <SheetHeader className="px-6 pt-6">
+                  <SheetTitle>Edit User</SheetTitle>
+                  <SheetDescription>
+                    Update user details below. Click save when you're done.
+                  </SheetDescription>
+                </SheetHeader>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleEditUser();
+                  }}
+                  className="flex flex-col gap-4 flex-1 px-6 mb-6 mt-4"
+                >
+                  <div>
+                    <label
+                      htmlFor="editFullName"
+                      className="block text-sm font-medium mb-1"
+                    >
+                      Full Name
+                    </label>
+                    <input
+                      id="editFullName"
+                      value={newUser.fullName}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, fullName: e.target.value })
+                      }
+                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
+                      placeholder="Enter full name"
+                    />
                   </div>
-                  <div className="flex justify-end gap-2">
+                  <div>
+                    <label
+                      htmlFor="editEmail"
+                      className="block text-sm font-medium mb-1"
+                    >
+                      Email
+                    </label>
+                    <input
+                      id="editEmail"
+                      value={newUser.email}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, email: e.target.value })
+                      }
+                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
+                      placeholder="Enter email"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="editMobile"
+                      className="block text-sm font-medium mb-1"
+                    >
+                      Phone Number
+                    </label>
+                    <input
+                      id="editMobile"
+                      value={newUser.mobile}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, mobile: e.target.value })
+                      }
+                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
+                      placeholder="Enter phone number"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="editHouseNumber"
+                      className="block text-sm font-medium mb-1"
+                    >
+                      House Number
+                    </label>
+                    <input
+                      id="editHouseNumber"
+                      value={newUser.houseNumber}
+                      onChange={(e) =>
+                        setNewUser({
+                          ...newUser,
+                          houseNumber: e.target.value,
+                        })
+                      }
+                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
+                      placeholder="Enter House Number"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="editLandmark"
+                      className="block text-sm font-medium mb-1"
+                    >
+                      Landmark
+                    </label>
+                    <input
+                      id="editLandmark"
+                      value={newUser.landmark}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, landmark: e.target.value })
+                      }
+                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
+                      placeholder="Enter Landmark"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="editCity"
+                      className="block text-sm font-medium mb-1"
+                    >
+                      City
+                    </label>
+                    <input
+                      id="editCity"
+                      value={newUser.city}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, city: e.target.value })
+                      }
+                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
+                      placeholder="Enter City"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="editState"
+                      className="block text-sm font-medium mb-1"
+                    >
+                      State
+                    </label>
+                    <input
+                      id="editState"
+                      value={newUser.state}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, state: e.target.value })
+                      }
+                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
+                      placeholder="Enter State"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="editPincode"
+                      className="block text-sm font-medium mb-1"
+                    >
+                      Pincode
+                    </label>
+                    <input
+                      id="editPincode"
+                      value={newUser.pincode}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, pincode: e.target.value })
+                      }
+                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
+                      placeholder="Enter Pincode"
+                    />
+                  </div>
+                  <div className="mt-auto flex flex-col gap-3">
+                    <Button variant="default" type="submit" className="w-full">
+                      Update User
+                    </Button>
                     <Button
                       variant="outline"
-                      onClick={() => setOpenDialog(false)}
+                      type="button"
+                      onClick={() => setEditSheetOpen(false)}
+                      className="w-full"
                     >
                       Cancel
                     </Button>
-                    <Button variant="default" onClick={handleAddUser}>
-                      Save User
-                    </Button>
                   </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+                </form>
+              </SheetContent>
+            </Sheet>
             <div className="rounded-xl overflow-hidden mt-10">
               <DataTable data={tableData} columns={userColumns} />
             </div>
