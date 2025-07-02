@@ -170,7 +170,7 @@ export default function Page() {
       const config = {
         method: "post",
         maxBodyLength: Infinity,
-        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}users`,
+        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}user`,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("userToken")}`,
@@ -226,9 +226,9 @@ export default function Page() {
   const handleEditUser = async () => {
     try {
       const config = {
-        method: "put",
+        method: "patch",
         maxBodyLength: Infinity,
-        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}users/${editUser.original._id}`,
+        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}user/${editUser.original._id}`,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("userToken")}`,
@@ -404,7 +404,7 @@ export default function Page() {
                         htmlFor="houseNumber"
                         className="block text-sm font-medium mb-1"
                       >
-                        House Number
+                        Address
                       </label>
                       <input
                         id="houseNumber"
@@ -416,7 +416,7 @@ export default function Page() {
                           })
                         }
                         className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                        placeholder="Enter House Number"
+                        placeholder="Enter Address"
                       />
                     </div>
                     <div>
@@ -579,7 +579,7 @@ export default function Page() {
                       htmlFor="editHouseNumber"
                       className="block text-sm font-medium mb-1"
                     >
-                      House Number
+                      Address
                     </label>
                     <input
                       id="editHouseNumber"
@@ -591,7 +591,7 @@ export default function Page() {
                         })
                       }
                       className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                      placeholder="Enter House Number"
+                      placeholder="Enter Address"
                     />
                   </div>
                   <div>

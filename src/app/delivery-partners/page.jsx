@@ -70,9 +70,10 @@ export default function Page() {
   const [openSheet, setOpenSheet] = useState(false);
   const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [newDeliveryPartner, setNewDeliveryPartner] = useState({
-    name: "",
+    mobile: "",
     email: "",
-    phoneNumber: "",
+    fullName: "",
+    gender: "",
     vehicleNumber: "",
     drivingLicenceNumber: "",
   });
@@ -96,11 +97,10 @@ export default function Page() {
             id: index + 1,
             name: item.userId?.fullName || "N/A",
             email: item.userId?.email || "N/A",
-            phoneNumber:
-              item.userId?.mobile || item.emergencyContactNumber || "N/A",
+            phoneNumber: item.userId?.mobile || "N/A",
             vehicleNumber: item.vehicleNumber || "N/A",
             drivingLicenceNumber: item.drivingLicenceNumber || "N/A",
-            original: item, // Store original data for editing
+            original: item,
           }))
         : [];
       setTableData(deliveryData);
@@ -127,9 +127,10 @@ export default function Page() {
       setEditPartner(partner);
       setEditSheetOpen(true);
       setNewDeliveryPartner({
-        name: partner.name || "",
+        mobile: partner.phoneNumber || "",
         email: partner.email || "",
-        phoneNumber: partner.phoneNumber || "",
+        fullName: partner.name || "",
+        gender: partner.original?.gender || "male",
         vehicleNumber: partner.vehicleNumber || "",
         drivingLicenceNumber: partner.drivingLicenceNumber || "",
       });
@@ -140,34 +141,87 @@ export default function Page() {
 
   const handleAddDeliveryPartner = async () => {
     try {
+      if (
+        !newDeliveryPartner.mobile ||
+        !newDeliveryPartner.email ||
+        !newDeliveryPartner.fullName ||
+        !newDeliveryPartner.vehicleNumber ||
+        !newDeliveryPartner.drivingLicenceNumber
+      ) {
+        toast.error("Please fill in all required fields", {
+          style: {
+            backgroundColor: "#FEE2E2",
+            color: "#991B1B",
+            borderColor: "#EF4444",
+          },
+        });
+        return;
+      }
+
+      const requestData = {
+        mobile: newDeliveryPartner.mobile,
+        email: newDeliveryPartner.email,
+        fullName: newDeliveryPartner.fullName,
+        gender: newDeliveryPartner.gender,
+        addresses: [
+          {
+            type: "home",
+            address: "789 Partner Street",
+            city: "Pune",
+            state: "Maharashtra",
+            pincode: "411001",
+            isDefault: true,
+            tag: "home",
+          },
+        ],
+        vehicleNumber: newDeliveryPartner.vehicleNumber,
+        vehicleType: "bike",
+        vehicleBrand: "Honda",
+        ownerName: newDeliveryPartner.fullName,
+        registrationDate: "2023-01-15",
+        drivingLicenceNumber: newDeliveryPartner.drivingLicenceNumber,
+        insuranceDoc: "insurance_doc_url",
+        rcDoc: "rc_doc_url",
+        pucDoc: "puc_doc_url",
+        licenceImage: "licence_image_url",
+        emergencyContactName: "Emergency Contact",
+        emergencyContactNumber: "9876543210",
+        aadharNumber: "123456789012",
+        aadharImage: "aadhar_image_url",
+        profileImage: "profile_image_url",
+        bankDetails: {
+          accountNumber: "1234567890",
+          ifscCode: "SBIN0001234",
+          bankName: "State Bank of India",
+          accountHolderName: newDeliveryPartner.fullName,
+        },
+        isVerify: true,
+      };
+
       const config = {
         method: "post",
         maxBodyLength: Infinity,
-        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}delivery-partners`,
+        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}delivery-partner`,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("userToken")}`,
         },
-        data: JSON.stringify({
-          ...newDeliveryPartner,
-          ownerName: newDeliveryPartner.name,
-          vehicleType: "",
-          vehicleBrand: "",
-          registrationDate: new Date().toISOString(),
-          emergencyContactNumber: newDeliveryPartner.phoneNumber,
-        }),
+        data: JSON.stringify(requestData),
       };
 
-      await axios.request(config);
+      const response = await axios.request(config);
+      console.log("Response:", response.data);
       await fetchData();
       setOpenSheet(false);
       setNewDeliveryPartner({
-        name: "",
+        mobile: "",
         email: "",
-        phoneNumber: "",
+        fullName: "",
+        gender: "",
         vehicleNumber: "",
         drivingLicenceNumber: "",
       });
+
       toast.success("Delivery partner added successfully!", {
         style: {
           backgroundColor: "#DCFCE7",
@@ -177,7 +231,10 @@ export default function Page() {
       });
     } catch (error) {
       console.error("Error adding delivery partner:", error);
-      toast.error("Failed to add delivery partner. Please try again.", {
+      const errorMessage =
+        error.response?.data?.message ||
+        "Failed to add delivery partner. Please try again.";
+      toast.error(errorMessage, {
         style: {
           backgroundColor: "#FEE2E2",
           color: "#991B1B",
@@ -189,36 +246,89 @@ export default function Page() {
 
   const handleEditDeliveryPartner = async () => {
     try {
+      if (!editPartner?.original?._id) {
+        toast.error("No delivery partner selected for editing", {
+          style: {
+            backgroundColor: "#FEE2E2",
+            color: "#991B1B",
+            borderColor: "#EF4444",
+          },
+        });
+        return;
+      }
+
+      if (
+        !newDeliveryPartner.mobile ||
+        !newDeliveryPartner.email ||
+        !newDeliveryPartner.fullName ||
+        !newDeliveryPartner.vehicleNumber ||
+        !newDeliveryPartner.drivingLicenceNumber
+      ) {
+        toast.error("Please fill in all required fields", {
+          style: {
+            backgroundColor: "#FEE2E2",
+            color: "#991B1B",
+            borderColor: "#EF4444",
+          },
+        });
+        return;
+      }
+
+      const requestData = {
+        mobile: newDeliveryPartner.mobile,
+        email: newDeliveryPartner.email,
+        fullName: newDeliveryPartner.fullName,
+        vehicleNumber: newDeliveryPartner.vehicleNumber,
+        drivingLicenceNumber: newDeliveryPartner.drivingLicenceNumber,
+        gender: newDeliveryPartner.gender,
+        addresses: [
+          {
+            type: "home",
+            address: "789 Partner Street",
+            city: "Pune",
+            state: "Maharashtra",
+            pincode: "411001",
+            isDefault: true,
+            tag: "home",
+          },
+        ],
+        vehicleType: "bike",
+        vehicleBrand: "Honda",
+        emergencyContactName: "Emergency Contact",
+        emergencyContactNumber: "9876543210",
+        aadharNumber: "123456789012",
+        bankDetails: {
+          accountNumber: "1234567890",
+          ifscCode: "SBIN0001234",
+          bankName: "State Bank of India",
+          accountHolderName: newDeliveryPartner.fullName,
+        },
+      };
+
       const config = {
-        method: "put",
+        method: "patch",
         maxBodyLength: Infinity,
-        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}delivery-partners/${editPartner.original._id}`,
+        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}delivery-partner/${editPartner.original._id}`,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("userToken")}`,
         },
-        data: JSON.stringify({
-          ...newDeliveryPartner,
-          ownerName: newDeliveryPartner.name,
-          vehicleType: editPartner.original.vehicleType || "",
-          vehicleBrand: editPartner.original.vehicleBrand || "",
-          registrationDate:
-            editPartner.original.registrationDate || new Date().toISOString(),
-          emergencyContactNumber: newDeliveryPartner.phoneNumber,
-        }),
+        data: JSON.stringify(requestData),
       };
 
-      await axios.request(config);
+      const response = await axios.request(config);
       await fetchData();
       setEditSheetOpen(false);
       setEditPartner(null);
       setNewDeliveryPartner({
-        name: "",
+        mobile: "",
         email: "",
-        phoneNumber: "",
+        fullName: "",
+        gender: "",
         vehicleNumber: "",
         drivingLicenceNumber: "",
       });
+
       toast.success("Delivery partner updated successfully!", {
         style: {
           backgroundColor: "#DCFCE7",
@@ -228,7 +338,10 @@ export default function Page() {
       });
     } catch (error) {
       console.error("Error updating delivery partner:", error);
-      toast.error("Failed to update delivery partner. Please try again.", {
+      const errorMessage =
+        error.response?.data?.message ||
+        "Failed to update delivery partner. Please try again.";
+      toast.error(errorMessage, {
         style: {
           backgroundColor: "#FEE2E2",
           color: "#991B1B",
@@ -290,7 +403,7 @@ export default function Page() {
                 <SheetTrigger asChild>
                   <Button variant="default">Add Delivery Partner</Button>
                 </SheetTrigger>
-                <SheetContent className="max-w-md w-full p-0 bg-white shadow-lg flex flex-col">
+                <SheetContent className="max-w-md w-full p-0 bg-white shadow-lg flex flex-col overflow-y-auto max-h-screen">
                   <SheetHeader className="px-6 pt-6">
                     <SheetTitle>Add New Delivery Partner</SheetTitle>
                     <SheetDescription>
@@ -307,22 +420,23 @@ export default function Page() {
                   >
                     <div>
                       <label
-                        htmlFor="name"
+                        htmlFor="fullName"
                         className="block text-sm font-medium mb-1"
                       >
-                        Name
+                        Full Name
                       </label>
                       <input
-                        id="name"
-                        value={newDeliveryPartner.name}
+                        id="fullName"
+                        required
+                        value={newDeliveryPartner.fullName}
                         onChange={(e) =>
                           setNewDeliveryPartner({
                             ...newDeliveryPartner,
-                            name: e.target.value,
+                            fullName: e.target.value,
                           })
                         }
                         className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                        placeholder="Enter name"
+                        placeholder="Enter full name"
                       />
                     </div>
                     <div>
@@ -334,6 +448,8 @@ export default function Page() {
                       </label>
                       <input
                         id="email"
+                        type="email"
+                        required
                         value={newDeliveryPartner.email}
                         onChange={(e) =>
                           setNewDeliveryPartner({
@@ -347,23 +463,48 @@ export default function Page() {
                     </div>
                     <div>
                       <label
-                        htmlFor="phoneNumber"
+                        htmlFor="mobile"
                         className="block text-sm font-medium mb-1"
                       >
-                        Phone Number
+                        Mobile Number
                       </label>
                       <input
-                        id="phoneNumber"
-                        value={newDeliveryPartner.phoneNumber}
+                        id="mobile"
+                        required
+                        value={newDeliveryPartner.mobile}
                         onChange={(e) =>
                           setNewDeliveryPartner({
                             ...newDeliveryPartner,
-                            phoneNumber: e.target.value,
+                            mobile: e.target.value,
                           })
                         }
                         className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                        placeholder="Enter phone number"
+                        placeholder="Enter mobile number"
                       />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="gender"
+                        className="block text-sm font-medium mb-1"
+                      >
+                        Gender
+                      </label>
+                      <select
+                        id="gender"
+                        required
+                        value={newDeliveryPartner.gender}
+                        onChange={(e) =>
+                          setNewDeliveryPartner({
+                            ...newDeliveryPartner,
+                            gender: e.target.value,
+                          })
+                        }
+                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm"
+                      >
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
                     </div>
                     <div>
                       <label
@@ -374,6 +515,7 @@ export default function Page() {
                       </label>
                       <input
                         id="vehicleNumber"
+                        required
                         value={newDeliveryPartner.vehicleNumber}
                         onChange={(e) =>
                           setNewDeliveryPartner({
@@ -394,6 +536,7 @@ export default function Page() {
                       </label>
                       <input
                         id="drivingLicenceNumber"
+                        required
                         value={newDeliveryPartner.drivingLicenceNumber}
                         onChange={(e) =>
                           setNewDeliveryPartner({
@@ -427,7 +570,7 @@ export default function Page() {
               </Sheet>
             </div>
             <Sheet open={editSheetOpen} onOpenChange={setEditSheetOpen}>
-              <SheetContent className="max-w-md w-full p-0 bg-white shadow-lg flex flex-col">
+              <SheetContent className="max-w-md w-full p-0 bg-white shadow-lg flex flex-col overflow-y-auto max-h-screen">
                 <SheetHeader className="px-6 pt-6">
                   <SheetTitle>Edit Delivery Partner</SheetTitle>
                   <SheetDescription>
@@ -444,22 +587,22 @@ export default function Page() {
                 >
                   <div>
                     <label
-                      htmlFor="editName"
+                      htmlFor="editFullName"
                       className="block text-sm font-medium mb-1"
                     >
-                      Name
+                      Full Name
                     </label>
                     <input
-                      id="editName"
-                      value={newDeliveryPartner.name}
+                      id="editFullName"
+                      value={newDeliveryPartner.fullName}
                       onChange={(e) =>
                         setNewDeliveryPartner({
                           ...newDeliveryPartner,
-                          name: e.target.value,
+                          fullName: e.target.value,
                         })
                       }
                       className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                      placeholder="Enter name"
+                      placeholder="Enter full name"
                     />
                   </div>
                   <div>
@@ -471,6 +614,7 @@ export default function Page() {
                     </label>
                     <input
                       id="editEmail"
+                      type="email"
                       value={newDeliveryPartner.email}
                       onChange={(e) =>
                         setNewDeliveryPartner({
@@ -484,23 +628,46 @@ export default function Page() {
                   </div>
                   <div>
                     <label
-                      htmlFor="editPhoneNumber"
+                      htmlFor="editMobile"
                       className="block text-sm font-medium mb-1"
                     >
-                      Phone Number
+                      Mobile Number
                     </label>
                     <input
-                      id="editPhoneNumber"
-                      value={newDeliveryPartner.phoneNumber}
+                      id="editMobile"
+                      value={newDeliveryPartner.mobile}
                       onChange={(e) =>
                         setNewDeliveryPartner({
                           ...newDeliveryPartner,
-                          phoneNumber: e.target.value,
+                          mobile: e.target.value,
                         })
                       }
                       className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                      placeholder="Enter phone number"
+                      placeholder="Enter mobile number"
                     />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="editGender"
+                      className="block text-sm font-medium mb-1"
+                    >
+                      Gender
+                    </label>
+                    <select
+                      id="editGender"
+                      value={newDeliveryPartner.gender}
+                      onChange={(e) =>
+                        setNewDeliveryPartner({
+                          ...newDeliveryPartner,
+                          gender: e.target.value,
+                        })
+                      }
+                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm"
+                    >
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
                   </div>
                   <div>
                     <label

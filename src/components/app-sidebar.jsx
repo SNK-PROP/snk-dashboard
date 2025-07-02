@@ -23,7 +23,14 @@ import {
   IconPackage,
   IconCreditCard,
 } from "@tabler/icons-react";
-
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
@@ -36,6 +43,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useRouter } from "next/navigation";
 
 const staticData = {
   navMain: [
@@ -129,6 +137,8 @@ export function AppSidebar({ ...props }) {
     avatar: "/default-avatar.png",
   });
 
+  const router = useRouter();
+
   React.useEffect(() => {
     const storedName = localStorage.getItem("userName");
     const storedEmail = localStorage.getItem("userEmail");
@@ -153,7 +163,20 @@ export function AppSidebar({ ...props }) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={staticData.navMain} />
-        <NavSecondary items={staticData.navSecondary} className="mt-auto" />
+        {/* <div className="mt-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <NavSecondary items={staticData.navSecondary} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => router.push("/profile")}>
+                Profile
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />
