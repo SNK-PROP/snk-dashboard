@@ -39,7 +39,6 @@ export function LoginForm({ className, ...props }) {
       };
 
       const response = await axios.request(config);
-      console.log("Send OTP Response:", response.data);
       setLoading(false);
       setStep(2);
     } catch (error) {
@@ -80,7 +79,6 @@ export function LoginForm({ className, ...props }) {
       };
 
       const response = await axios.request(config);
-      console.log("Verify OTP Response:", response.data);
 
       if (response.data.success && response.data.userToken) {
         const { userToken, user } = response.data;
@@ -89,12 +87,6 @@ export function LoginForm({ className, ...props }) {
         localStorage.setItem("userToken", userToken);
         localStorage.setItem("userName", user?.fullName || "User");
         localStorage.setItem("userEmail", user?.email || "no-email");
-
-        console.log("Stored Values:", {
-          userToken,
-          userName: user?.fullName || "User",
-          userEmail: user?.email || "no-email",
-        });
 
         setLoading(false);
         toast.success("Log in successfully", {
@@ -276,10 +268,10 @@ export function LoginForm({ className, ...props }) {
           </div>
         </CardContent>
       </Card>
-      <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
+      {/* <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
         By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
         and <a href="#">Privacy Policy</a>.
-      </div>
+      </div> */}
       <Toaster />
     </div>
   );

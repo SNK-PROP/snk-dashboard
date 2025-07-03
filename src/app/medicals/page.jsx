@@ -11,12 +11,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -30,12 +28,13 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [remark, setRemark] = useState("");
 
   const fetchData = async () => {
     try {
-      setLoading(true); // Set loading to true before fetching
+      setLoading(true);
       const config = {
         method: "get",
         maxBodyLength: Infinity,
@@ -53,14 +52,16 @@ export default function Page() {
         owner_name: item.owner_name,
         phone_number: item.phone_number,
         approved: item.approved ? "Approved" : "Rejected",
+        medical_images: item.medical_images,
+        drugLicense: item.drugLicense,
       }));
       setTableData(medicalData);
-      setError(null); // Clear any previous errors
+      setError(null);
     } catch (error) {
       console.error("Error fetching data:", error);
       setError("Failed to fetch medical data");
     } finally {
-      setLoading(false); // Ensure loading is set to false
+      setLoading(false);
     }
   };
 
@@ -89,9 +90,8 @@ export default function Page() {
         }),
       };
 
-      const response = await axios.request(config)
+      const response = await axios.request(config);
 
-      // Auto-refresh by refetching data
       await fetchData();
 
       setOpenDialog(false);
@@ -157,6 +157,15 @@ export default function Page() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelectedRow(row);
+                  setViewDialogOpen(true);
+                }}
+              >
+                View
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 className={`${textColor} flex items-center gap-2 font-medium`}
                 onClick={() => {
@@ -252,6 +261,102 @@ export default function Page() {
             </Button>
             <Button variant="default" onClick={handleStatusChange}>
               Save changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <span>Medical Store Images</span>
+            </DialogTitle>
+            <DialogDescription className="text-gray-500">
+              View the medical store and drug license images.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRow && (
+            <div className="px-6 pb-6 overflow-y-auto max-h-[60vh]">
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <svg
+                    className="w-5 h-5 text-blue-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M12 4v16m8-8H4"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  Medical Images
+                </h3>
+                {selectedRow.original.medical_images &&
+                selectedRow.original.medical_images.length > 0 ? (
+                  selectedRow.original.medical_images.map((image, index) => (
+                    <div key={index} className="w-full mb-4">
+                      <img
+                        src={image}
+                        alt={`Medical Image ${index + 1}`}
+                        className="w-full h-56 object-cover rounded-xl shadow-md border border-gray-100"
+                        onError={(e) => {
+                          e.target.src = "/placeholder-image.jpg";
+                        }}
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-400 italic">
+                    No medical images available.
+                  </div>
+                )}
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <svg
+                    className="w-5 h-5 text-green-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <rect
+                      x="3"
+                      y="3"
+                      width="18"
+                      height="18"
+                      rx="2"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  Drug License
+                </h3>
+                <div className="w-full">
+                  {selectedRow.original.drugLicense ? (
+                    <img
+                      src={selectedRow.original.drugLicense}
+                      alt="Drug License"
+                      className="w-full h-56 object-cover rounded-xl shadow-md border border-gray-100"
+                      onError={(e) => {
+                        e.target.src = "/placeholder-image.jpg";
+                      }}
+                    />
+                  ) : (
+                    <div className="text-center text-gray-400 italic">
+                      No drug license image available.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end px-6 pb-6">
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+              Close
             </Button>
           </div>
         </DialogContent>

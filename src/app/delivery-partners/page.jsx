@@ -210,7 +210,6 @@ export default function Page() {
       };
 
       const response = await axios.request(config);
-      console.log("Response:", response.data);
       await fetchData();
       setOpenSheet(false);
       setNewDeliveryPartner({
@@ -401,7 +400,7 @@ export default function Page() {
               </div>
               <Sheet open={openSheet} onOpenChange={setOpenSheet}>
                 <SheetTrigger asChild>
-                  <Button variant="default">Add Delivery Partner</Button>
+                  {/* <Button variant="default">Add Delivery Partner</Button> */}
                 </SheetTrigger>
                 <SheetContent className="max-w-md w-full p-0 bg-white shadow-lg flex flex-col overflow-y-auto max-h-screen">
                   <SheetHeader className="px-6 pt-6">

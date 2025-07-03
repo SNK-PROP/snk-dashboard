@@ -55,10 +55,10 @@ export function SectionCards() {
             ₹{stats.totalRevenue.toFixed(2)}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
+            {/* <Badge variant="outline">
               <IconTrendingUp />
               0%
-            </Badge>
+            </Badge> */}
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -75,10 +75,10 @@ export function SectionCards() {
             {stats.totalMedicalStores}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
+            {/* <Badge variant="outline">
               <IconTrendingDown />
               0%
-            </Badge>
+            </Badge> */}
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -95,10 +95,10 @@ export function SectionCards() {
             {stats.totalUsers}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
+            {/* <Badge variant="outline">
               <IconTrendingUp />
               0%
-            </Badge>
+            </Badge> */}
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -115,10 +115,10 @@ export function SectionCards() {
             {stats.subscriptionPercentage}%
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
+            {/* <Badge variant="outline">
               <IconTrendingUp />
               0%
-            </Badge>
+            </Badge> */}
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">

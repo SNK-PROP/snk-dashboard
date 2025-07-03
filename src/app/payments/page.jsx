@@ -98,19 +98,14 @@ const tableData = [
 
 export default function Page() {
   return (
-    <SidebarProvider
-      style={{
-        "--sidebar-width": "calc(var(--spacing) * 72)",
-        "--header-height": "calc(var(--spacing) * 12)",
-      }}
-    >
+    <SidebarProvider >
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <h1 className="text-2xl font-bold mb-4">Payments Page</h1>
-            <DataTable data={tableData} />
+
           </div>
         </div>
       </SidebarInset>
