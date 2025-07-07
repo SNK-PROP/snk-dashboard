@@ -3,25 +3,15 @@
 import * as React from "react";
 import {
   IconCamera,
-  IconChartBar,
   IconDashboard,
-  IconDatabase,
   IconFileAi,
   IconFileDescription,
-  IconFileWord,
-  IconFolder,
-  IconHelp,
-  IconInnerShadowTop,
-  IconListDetails,
-  IconReport,
-  IconSearch,
   IconSettings,
   IconUsers,
-  IconHospital,
-  IconPill,
   IconAmbulance,
   IconPackage,
   IconCreditCard,
+  IconReceipt
 } from "@tabler/icons-react";
 import {
   DropdownMenu,
@@ -56,6 +46,11 @@ const staticData = {
       title: "Users",
       url: "/users",
       icon: IconUsers,
+    },
+    {
+      title: "Orders",
+      url: "/orders",
+      icon: IconReceipt,
     },
     {
       title: "Medicals",
