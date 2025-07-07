@@ -54,6 +54,22 @@ export default function Page() {
         approved: item.approved ? "Approved" : "Rejected",
         medical_images: item.medical_images,
         drugLicense: item.drugLicense,
+        ratings: item.ratings ,
+        shop_no: item.shop_no,
+        floor_tower: item.floor_tower,
+        area_sector_locality: item.area_sector_locality,
+        city: item.city,
+        landmark: item.landmark,
+        pan_number: item.pan_number,
+        full_name_on_pan: item.full_name_on_pan,
+        bank_account_number: item.bank_account_number,
+        ifsc_code: item.ifsc_code,
+        online: item.online,
+        gstin: item.gstin,
+        longitude: item.longitude,
+        latitude: item.latitude,
+        pan_card_image: item.pan_card_image,
+        account_type: item.account_type,
       }));
       setTableData(medicalData);
       setError(null);
@@ -164,7 +180,7 @@ export default function Page() {
                 }}
               >
                 View
-              </DropdownMenuItem>
+              </DropdownMenuItem>              
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className={`${textColor} flex items-center gap-2 font-medium`}
@@ -266,32 +282,58 @@ export default function Page() {
         </DialogContent>
       </Dialog>
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden">
+        <DialogContent className="max-w-2xl p-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-              <span>Medical Store Images</span>
+              <span>Medical Store Details</span>
             </DialogTitle>
             <DialogDescription className="text-gray-500">
-              View the medical store and drug license images.
+              View all details of the medical store.
             </DialogDescription>
           </DialogHeader>
           {selectedRow && (
-            <div className="px-6 pb-6 overflow-y-auto max-h-[60vh]">
+            <div className="px-6 pb-6 overflow-y-auto max-h-[70vh]">
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4">
+                  Basic Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Medical Name</p>
+                    <p className="font-medium">
+                      {selectedRow.original.medical_name || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Owner Name</p>
+                    <p className="font-medium">
+                      {selectedRow.original.owner_name || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Phone Number</p>
+                    <p className="font-medium">
+                      {selectedRow.original.phone_number || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Ratings</p>
+                    <p className="font-medium">
+                      {selectedRow.original.ratings !== undefined && selectedRow.original.ratings !== null
+                        ? selectedRow.original.ratings
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Online Status</p>
+                    <p className="font-medium">
+                      {selectedRow.original.online ? "Online" : "Offline"}
+                    </p>
+                  </div>
+                </div>
+              </div>
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5 text-blue-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M12 4v16m8-8H4"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
                   Medical Images
                 </h3>
                 {selectedRow.original.medical_images &&
@@ -314,25 +356,8 @@ export default function Page() {
                   </div>
                 )}
               </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5 text-green-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <rect
-                      x="3"
-                      y="3"
-                      width="18"
-                      height="18"
-                      rx="2"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"> 
                   Drug License
                 </h3>
                 <div className="w-full">
@@ -350,6 +375,122 @@ export default function Page() {
                       No drug license image available.
                     </div>
                   )}
+                </div>
+              </div>
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4">Address Details</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Shop Number</p>
+                    <p className="font-medium">
+                      {selectedRow.original.shop_no || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Floor/Tower</p>
+                    <p className="font-medium">
+                      {selectedRow.original.floor_tower || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">
+                      Area/Sector/Locality
+                    </p>
+                    <p className="font-medium">
+                      {selectedRow.original.area_sector_locality || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">City</p>
+                    <p className="font-medium">
+                      {selectedRow.original.city || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Landmark</p>
+                    <p className="font-medium">
+                      {selectedRow.original.landmark || "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4">
+                  Financial Details
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">PAN Number</p>
+                    <p className="font-medium">
+                      {selectedRow.original.pan_number || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Full Name on PAN</p>
+                    <p className="font-medium">
+                      {selectedRow.original.full_name_on_pan || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Bank Account Number</p>
+                    <p className="font-medium">
+                      {selectedRow.original.bank_account_number || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">IFSC Code</p>
+                    <p className="font-medium">
+                      {selectedRow.original.ifsc_code || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">GSTIN</p>
+                    <p className="font-medium">
+                      {selectedRow.original.gstin || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Account Type</p>
+                    <p className="font-medium">
+                      {selectedRow.original.account_type || "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4">PAN Card Image</h3>
+                <div className="w-full">
+                  {selectedRow.original.pan_card_image ? (
+                    <img
+                      src={selectedRow.original.pan_card_image}
+                      alt="PAN Card Image"
+                      className="w-full h-56 object-cover rounded-xl shadow-md border border-gray-100"
+                      onError={(e) => {
+                        e.target.src = "/placeholder-image.jpg";
+                      }}
+                    />
+                  ) : (
+                    <div className="text-center text-gray-400 italic">
+                      No PAN card image available.
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4">Geolocation</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Longitude</p>
+                    <p className="font-medium">
+                      {selectedRow.original.longitude || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Latitude</p>
+                    <p className="font-medium">
+                      {selectedRow.original.latitude || "N/A"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
