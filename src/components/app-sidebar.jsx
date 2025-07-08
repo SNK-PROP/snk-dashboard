@@ -62,11 +62,11 @@ const staticData = {
       url: "/delivery-partners",
       icon: IconPackage,
     },
-    {
-      title: "Payments",
-      url: "/payments",
-      icon: IconCreditCard,
-    },
+    // {
+    //   title: "Payments",
+    //   url: "/payments",
+    //   icon: IconCreditCard,
+    // },
   ],
   navClouds: [
     {
