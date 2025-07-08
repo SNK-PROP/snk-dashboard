@@ -10,8 +10,8 @@ import {
   IconUsers,
   IconAmbulance,
   IconPackage,
-  IconCreditCard,
-  IconReceipt
+  IconReceipt,
+  IconFolders
 } from "@tabler/icons-react";
 import {
   DropdownMenu,
@@ -61,6 +61,11 @@ const staticData = {
       title: "Delivery Partners",
       url: "/delivery-partners",
       icon: IconPackage,
+    },
+    {
+      title: "Categories",
+      url: "/categories",
+      icon: IconFolders,
     },
     // {
     //   title: "Payments",
