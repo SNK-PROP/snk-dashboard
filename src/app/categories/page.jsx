@@ -87,8 +87,20 @@ export default function Page() {
           data: formData,
         };
 
-        iconUrl = uploadResponse.data.fileUrl;
+        const uploadResponse = await axios.request(uploadConfig);
+        if (uploadResponse.data && uploadResponse.data.fileUrl) {
+          iconUrl = uploadResponse.data.fileUrl;
+        } else {
+          throw new Error("Failed to upload new icon");
+        }
       }
+
+      console.log("Sending patch request with:", {
+        name: newName,
+        catType: newCatType,
+        icon: iconUrl,
+        _id: selectedCategory._id,
+      });
 
       const config = {
         method: "patch",
@@ -118,6 +130,10 @@ export default function Page() {
         },
       });
     } catch (err) {
+      console.error(
+        "Error updating category:",
+        err.response?.data || err.message
+      );
       toast.error("Failed to update category", {
         style: {
           backgroundColor: "#FEE2E2",
@@ -199,6 +215,7 @@ export default function Page() {
           data: formData,
         };
 
+        const uploadResponse = await axios.request(uploadConfig);
         iconUrl = uploadResponse.data.fileUrl;
       }
 
@@ -234,6 +251,7 @@ export default function Page() {
           borderColor: "#16A34A",
         },
       });
+      window.location.reload(); // Refresh the page after successful addition
     } catch (err) {
       console.error(
         "Error adding category:",
