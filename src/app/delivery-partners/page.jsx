@@ -80,15 +80,15 @@ export default function Page() {
     ownerName: "",
     registrationDate: "",
     drivingLicenceNumber: "",
-    insuranceDoc: "",
-    rcDoc: "",
-    pucDoc: "",
-    licenceImage: "",
+    insuranceDoc: null,
+    rcDoc: null,
+    pucDoc: null,
+    licenceImage: null,
     emergencyContactName: "",
     emergencyContactNumber: "",
     aadharNumber: "",
-    aadharImage: "",
-    profileImage: "",
+    aadharImage: null,
+    profileImage: null,
     bankDetails: {
       accountNumber: "",
       ifscCode: "",
@@ -101,6 +101,14 @@ export default function Page() {
     },
   });
   const [editPartner, setEditPartner] = useState(null);
+  const [fileUploads, setFileUploads] = useState({
+    insuranceDoc: null,
+    rcDoc: null,
+    pucDoc: null,
+    licenceImage: null,
+    aadharImage: null,
+    profileImage: null,
+  });
 
   const fetchData = async () => {
     try {
@@ -161,15 +169,15 @@ export default function Page() {
         registrationDate:
           partner.original?.registrationDate?.split("T")[0] || "",
         drivingLicenceNumber: partner.drivingLicenceNumber || "",
-        insuranceDoc: partner.original?.insuranceDoc || "",
-        rcDoc: partner.original?.rcDoc || "",
-        pucDoc: partner.original?.pucDoc || "",
-        licenceImage: partner.original?.licenceImage || "",
+        insuranceDoc: partner.original?.insuranceDoc || null,
+        rcDoc: partner.original?.rcDoc || null,
+        pucDoc: partner.original?.pucDoc || null,
+        licenceImage: partner.original?.licenceImage || null,
         emergencyContactName: partner.original?.emergencyContactName || "",
         emergencyContactNumber: partner.original?.emergencyContactNumber || "",
         aadharNumber: partner.original?.aadharNumber || "",
-        aadharImage: partner.original?.aadharImage || "",
-        profileImage: partner.original?.profileImage || "",
+        aadharImage: partner.original?.aadharImage || null,
+        profileImage: partner.original?.profileImage || null,
         bankDetails: {
           accountNumber: partner.original?.bankDetails?.accountNumber || "",
           ifscCode: partner.original?.bankDetails?.ifscCode || "",
@@ -181,6 +189,14 @@ export default function Page() {
           start: partner.original?.workingHours?.start || "09:00",
           end: partner.original?.workingHours?.end || "21:00",
         },
+      });
+      setFileUploads({
+        insuranceDoc: null,
+        rcDoc: null,
+        pucDoc: null,
+        licenceImage: null,
+        aadharImage: null,
+        profileImage: null,
       });
     };
     window.addEventListener("editPartner", handleEditPartner);
@@ -206,7 +222,7 @@ export default function Page() {
       "emergencyContactNumber",
     ];
     for (const field of requiredFields) {
-      if (!newDeliveryPartner[field]) {
+      if (!newDeliveryPartner[field] && !fileUploads[field]) {
         return false;
       }
     }
@@ -224,6 +240,46 @@ export default function Page() {
     return true;
   };
 
+  const uploadFile = async (file, fieldName) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const config = {
+      method: "post",
+      maxBodyLength: Infinity,
+      url: `${process.env.NEXT_PUBLIC_BACKEND_URL}media`,
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("userToken")}`,
+      },
+      data: formData,
+    };
+
+    try {
+      const response = await axios.request(config);
+      return response.data.fileUrl;
+    } catch (error) {
+      console.error(`Error uploading ${fieldName}:`, error);
+      toast.error(`Failed to upload ${fieldName}. Please try again.`, {
+        style: {
+          backgroundColor: "#FEE2E2",
+          color: "#991B1B",
+          borderColor: "#EF4444",
+        },
+      });
+      return null;
+    }
+  };
+
+  const handleFileChange = (e, fieldName) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFileUploads((prev) => ({
+        ...prev,
+        [fieldName]: file,
+      }));
+    }
+  };
+
   const handleAddDeliveryPartner = async () => {
     try {
       if (!validateRequiredFields()) {
@@ -237,11 +293,23 @@ export default function Page() {
         return;
       }
 
+      const updatedDeliveryPartner = { ...newDeliveryPartner };
+
+      // Upload files and update URLs
+      for (const [fieldName, file] of Object.entries(fileUploads)) {
+        if (file) {
+          const fileUrl = await uploadFile(file, fieldName);
+          if (fileUrl) {
+            updatedDeliveryPartner[fieldName] = fileUrl;
+          }
+        }
+      }
+
       const requestData = {
-        mobile: newDeliveryPartner.mobile,
-        email: newDeliveryPartner.email,
-        fullName: newDeliveryPartner.fullName,
-        gender: newDeliveryPartner.gender,
+        mobile: updatedDeliveryPartner.mobile,
+        email: updatedDeliveryPartner.email,
+        fullName: updatedDeliveryPartner.fullName,
+        gender: updatedDeliveryPartner.gender,
         addresses: [
           {
             type: "home",
@@ -253,24 +321,24 @@ export default function Page() {
             tag: "home",
           },
         ],
-        vehicleNumber: newDeliveryPartner.vehicleNumber,
-        vehicleType: newDeliveryPartner.vehicleType,
-        vehicleBrand: newDeliveryPartner.vehicleBrand,
-        ownerName: newDeliveryPartner.ownerName,
-        registrationDate: newDeliveryPartner.registrationDate,
-        drivingLicenceNumber: newDeliveryPartner.drivingLicenceNumber,
-        insuranceDoc: newDeliveryPartner.insuranceDoc,
-        rcDoc: newDeliveryPartner.rcDoc,
-        pucDoc: newDeliveryPartner.pucDoc,
-        licenceImage: newDeliveryPartner.licenceImage,
-        emergencyContactName: newDeliveryPartner.emergencyContactName,
-        emergencyContactNumber: newDeliveryPartner.emergencyContactNumber,
-        aadharNumber: newDeliveryPartner.aadharNumber,
-        aadharImage: newDeliveryPartner.aadharImage,
-        profileImage: newDeliveryPartner.profileImage,
-        bankDetails: newDeliveryPartner.bankDetails,
+        vehicleNumber: updatedDeliveryPartner.vehicleNumber,
+        vehicleType: updatedDeliveryPartner.vehicleType,
+        vehicleBrand: updatedDeliveryPartner.vehicleBrand,
+        ownerName: updatedDeliveryPartner.ownerName,
+        registrationDate: updatedDeliveryPartner.registrationDate,
+        drivingLicenceNumber: updatedDeliveryPartner.drivingLicenceNumber,
+        insuranceDoc: updatedDeliveryPartner.insuranceDoc,
+        rcDoc: updatedDeliveryPartner.rcDoc,
+        pucDoc: updatedDeliveryPartner.pucDoc,
+        licenceImage: updatedDeliveryPartner.licenceImage,
+        emergencyContactName: updatedDeliveryPartner.emergencyContactName,
+        emergencyContactNumber: updatedDeliveryPartner.emergencyContactNumber,
+        aadharNumber: updatedDeliveryPartner.aadharNumber,
+        aadharImage: updatedDeliveryPartner.aadharImage,
+        profileImage: updatedDeliveryPartner.profileImage,
+        bankDetails: updatedDeliveryPartner.bankDetails,
         isVerify: true,
-        workingHours: newDeliveryPartner.workingHours,
+        workingHours: updatedDeliveryPartner.workingHours,
       };
 
       const config = {
@@ -298,15 +366,15 @@ export default function Page() {
         ownerName: "",
         registrationDate: "",
         drivingLicenceNumber: "",
-        insuranceDoc: "",
-        rcDoc: "",
-        pucDoc: "",
-        licenceImage: "",
+        insuranceDoc: null,
+        rcDoc: null,
+        pucDoc: null,
+        licenceImage: null,
         emergencyContactName: "",
         emergencyContactNumber: "",
         aadharNumber: "",
-        aadharImage: "",
-        profileImage: "",
+        aadharImage: null,
+        profileImage: null,
         bankDetails: {
           accountNumber: "",
           ifscCode: "",
@@ -317,6 +385,14 @@ export default function Page() {
           start: "09:00",
           end: "21:00",
         },
+      });
+      setFileUploads({
+        insuranceDoc: null,
+        rcDoc: null,
+        pucDoc: null,
+        licenceImage: null,
+        aadharImage: null,
+        profileImage: null,
       });
 
       toast.success("Delivery partner added successfully!", {
@@ -365,28 +441,40 @@ export default function Page() {
         return;
       }
 
+      const updatedDeliveryPartner = { ...newDeliveryPartner };
+
+      // Upload files and update URLs
+      for (const [fieldName, file] of Object.entries(fileUploads)) {
+        if (file) {
+          const fileUrl = await uploadFile(file, fieldName);
+          if (fileUrl) {
+            updatedDeliveryPartner[fieldName] = fileUrl;
+          }
+        }
+      }
+
       const requestData = {
-        mobile: newDeliveryPartner.mobile,
-        email: newDeliveryPartner.email,
-        fullName: newDeliveryPartner.fullName,
-        gender: newDeliveryPartner.gender,
-        vehicleNumber: newDeliveryPartner.vehicleNumber,
-        vehicleType: newDeliveryPartner.vehicleType,
-        vehicleBrand: newDeliveryPartner.vehicleBrand,
-        ownerName: newDeliveryPartner.ownerName,
-        registrationDate: newDeliveryPartner.registrationDate,
-        drivingLicenceNumber: newDeliveryPartner.drivingLicenceNumber,
-        insuranceDoc: newDeliveryPartner.insuranceDoc,
-        rcDoc: newDeliveryPartner.rcDoc,
-        pucDoc: newDeliveryPartner.pucDoc,
-        licenceImage: newDeliveryPartner.licenceImage,
-        emergencyContactName: newDeliveryPartner.emergencyContactName,
-        emergencyContactNumber: newDeliveryPartner.emergencyContactNumber,
-        aadharNumber: newDeliveryPartner.aadharNumber,
-        aadharImage: newDeliveryPartner.aadharImage,
-        profileImage: newDeliveryPartner.profileImage,
-        bankDetails: newDeliveryPartner.bankDetails,
-        workingHours: newDeliveryPartner.workingHours,
+        mobile: updatedDeliveryPartner.mobile,
+        email: updatedDeliveryPartner.email,
+        fullName: updatedDeliveryPartner.fullName,
+        gender: updatedDeliveryPartner.gender,
+        vehicleNumber: updatedDeliveryPartner.vehicleNumber,
+        vehicleType: updatedDeliveryPartner.vehicleType,
+        vehicleBrand: updatedDeliveryPartner.vehicleBrand,
+        ownerName: updatedDeliveryPartner.ownerName,
+        registrationDate: updatedDeliveryPartner.registrationDate,
+        drivingLicenceNumber: updatedDeliveryPartner.drivingLicenceNumber,
+        insuranceDoc: updatedDeliveryPartner.insuranceDoc,
+        rcDoc: updatedDeliveryPartner.rcDoc,
+        pucDoc: updatedDeliveryPartner.pucDoc,
+        licenceImage: updatedDeliveryPartner.licenceImage,
+        emergencyContactName: updatedDeliveryPartner.emergencyContactName,
+        emergencyContactNumber: updatedDeliveryPartner.emergencyContactNumber,
+        aadharNumber: updatedDeliveryPartner.aadharNumber,
+        aadharImage: updatedDeliveryPartner.aadharImage,
+        profileImage: updatedDeliveryPartner.profileImage,
+        bankDetails: updatedDeliveryPartner.bankDetails,
+        workingHours: updatedDeliveryPartner.workingHours,
       };
 
       const config = {
@@ -415,15 +503,15 @@ export default function Page() {
         ownerName: "",
         registrationDate: "",
         drivingLicenceNumber: "",
-        insuranceDoc: "",
-        rcDoc: "",
-        pucDoc: "",
-        licenceImage: "",
+        insuranceDoc: null,
+        rcDoc: null,
+        pucDoc: null,
+        licenceImage: null,
         emergencyContactName: "",
         emergencyContactNumber: "",
         aadharNumber: "",
-        aadharImage: "",
-        profileImage: "",
+        aadharImage: null,
+        profileImage: null,
         bankDetails: {
           accountNumber: "",
           ifscCode: "",
@@ -434,6 +522,14 @@ export default function Page() {
           start: "09:00",
           end: "21:00",
         },
+      });
+      setFileUploads({
+        insuranceDoc: null,
+        rcDoc: null,
+        pucDoc: null,
+        licenceImage: null,
+        aadharImage: null,
+        profileImage: null,
       });
 
       toast.success("Delivery partner updated successfully!", {
@@ -716,20 +812,14 @@ export default function Page() {
           htmlFor={`${prefix}insuranceDoc`}
           className="block text-sm font-medium mb-1"
         >
-          Insurance Document URL
+          Insurance Document
         </label>
         <input
           id={`${prefix}insuranceDoc`}
-          required
-          value={newDeliveryPartner.insuranceDoc}
-          onChange={(e) =>
-            setNewDeliveryPartner({
-              ...newDeliveryPartner,
-              insuranceDoc: e.target.value,
-            })
-          }
+          type="file"
+          accept="image/*,application/pdf"
+          onChange={(e) => handleFileChange(e, "insuranceDoc")}
           className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-          placeholder="Enter insurance document URL"
         />
       </div>
       <div>
@@ -737,20 +827,14 @@ export default function Page() {
           htmlFor={`${prefix}rcDoc`}
           className="block text-sm font-medium mb-1"
         >
-          RC Document URL
+          RC Document
         </label>
         <input
           id={`${prefix}rcDoc`}
-          required
-          value={newDeliveryPartner.rcDoc}
-          onChange={(e) =>
-            setNewDeliveryPartner({
-              ...newDeliveryPartner,
-              rcDoc: e.target.value,
-            })
-          }
+          type="file"
+          accept="image/*,application/pdf"
+          onChange={(e) => handleFileChange(e, "rcDoc")}
           className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-          placeholder="Enter RC document URL"
         />
       </div>
       <div>
@@ -758,20 +842,14 @@ export default function Page() {
           htmlFor={`${prefix}pucDoc`}
           className="block text-sm font-medium mb-1"
         >
-          PUC Document URL
+          PUC Document
         </label>
         <input
           id={`${prefix}pucDoc`}
-          required
-          value={newDeliveryPartner.pucDoc}
-          onChange={(e) =>
-            setNewDeliveryPartner({
-              ...newDeliveryPartner,
-              pucDoc: e.target.value,
-            })
-          }
+          type="file"
+          accept="image/*,application/pdf"
+          onChange={(e) => handleFileChange(e, "pucDoc")}
           className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-          placeholder="Enter PUC document URL"
         />
       </div>
       <div>
@@ -779,20 +857,14 @@ export default function Page() {
           htmlFor={`${prefix}licenceImage`}
           className="block text-sm font-medium mb-1"
         >
-          Licence Image URL
+          Licence Image
         </label>
         <input
           id={`${prefix}licenceImage`}
-          required
-          value={newDeliveryPartner.licenceImage}
-          onChange={(e) =>
-            setNewDeliveryPartner({
-              ...newDeliveryPartner,
-              licenceImage: e.target.value,
-            })
-          }
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleFileChange(e, "licenceImage")}
           className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-          placeholder="Enter licence image URL"
         />
       </div>
       <div>
@@ -862,19 +934,14 @@ export default function Page() {
           htmlFor={`${prefix}aadharImage`}
           className="block text-sm font-medium mb-1"
         >
-          Aadhar Image URL
+          Aadhar Image
         </label>
         <input
           id={`${prefix}aadharImage`}
-          value={newDeliveryPartner.aadharImage}
-          onChange={(e) =>
-            setNewDeliveryPartner({
-              ...newDeliveryPartner,
-              aadharImage: e.target.value,
-            })
-          }
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleFileChange(e, "aadharImage")}
           className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-          placeholder="Enter Aadhar image URL"
         />
       </div>
       <div>
@@ -882,19 +949,14 @@ export default function Page() {
           htmlFor={`${prefix}profileImage`}
           className="block text-sm font-medium mb-1"
         >
-          Profile Image URL
+          Profile Image
         </label>
         <input
           id={`${prefix}profileImage`}
-          value={newDeliveryPartner.profileImage}
-          onChange={(e) =>
-            setNewDeliveryPartner({
-              ...newDeliveryPartner,
-              profileImage: e.target.value,
-            })
-          }
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleFileChange(e, "profileImage")}
           className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-          placeholder="Enter profile image URL"
         />
       </div>
       <div>

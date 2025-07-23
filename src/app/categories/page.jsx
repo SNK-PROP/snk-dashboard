@@ -33,6 +33,8 @@ export default function Page() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [newName, setNewName] = useState("");
   const [newCatType, setNewCatType] = useState("medicine");
+  const [newIcon, setNewIcon] = useState(null);
+  const [editNewIcon, setEditNewIcon] = useState(null); // New state for edit icon
   const [filter, setFilter] = useState("medicine");
 
   useEffect(() => {
@@ -63,11 +65,31 @@ export default function Page() {
     setSelectedCategory(category);
     setNewName(category.name);
     setNewCatType(category.catType);
+    setEditNewIcon(null); // Reset edit icon when opening edit dialog
     setEditDialogOpen(true);
   };
 
   const handleSaveEdit = async () => {
     try {
+      let iconUrl = selectedCategory.icon; // Default to existing icon URL
+
+      if (editNewIcon) {
+        const formData = new FormData();
+        formData.append("file", editNewIcon);
+
+        const uploadConfig = {
+          method: "post",
+          maxBodyLength: Infinity,
+          url: `${process.env.NEXT_PUBLIC_BACKEND_URL}media`,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("userToken")}`,
+          },
+          data: formData,
+        };
+
+        iconUrl = uploadResponse.data.fileUrl;
+      }
+
       const config = {
         method: "patch",
         maxBodyLength: Infinity,
@@ -75,18 +97,19 @@ export default function Page() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("userToken")}`,
         },
-        data: { name: newName, catType: newCatType },
+        data: { name: newName, catType: newCatType, icon: iconUrl },
       };
 
       const response = await axios.request(config);
       setCategories(
         categories.map((cat) =>
           cat._id === selectedCategory._id
-            ? { ...cat, name: newName, catType: newCatType }
+            ? { ...cat, name: newName, catType: newCatType, icon: iconUrl }
             : cat
         )
       );
       setEditDialogOpen(false);
+      setEditNewIcon(null); // Reset edit icon after saving
       toast.success("Category updated successfully", {
         style: {
           backgroundColor: "#DCFCE7",
@@ -144,8 +167,41 @@ export default function Page() {
     }
   };
 
+  const handleIconChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setNewIcon(file);
+    }
+  };
+
+  const handleEditIconChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setEditNewIcon(file);
+    }
+  };
+
   const handleAddCategory = async () => {
     try {
+      let iconUrl = null;
+
+      if (newIcon) {
+        const formData = new FormData();
+        formData.append("file", newIcon);
+
+        const uploadConfig = {
+          method: "post",
+          maxBodyLength: Infinity,
+          url: `${process.env.NEXT_PUBLIC_BACKEND_URL}media`,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("userToken")}`,
+          },
+          data: formData,
+        };
+
+        iconUrl = uploadResponse.data.fileUrl;
+      }
+
       const config = {
         method: "post",
         maxBodyLength: Infinity,
@@ -155,22 +211,22 @@ export default function Page() {
         },
         data: {
           name: newName,
-          icon: "https://medmedone.s3.ap-south-1.amazonaws.com/med1-media/1745125211810_medicine__2__1.svg",
+          icon: iconUrl,
           catType: newCatType,
         },
       };
 
       const response = await axios.request(config);
-      // Ensure the new category includes the name from input and default icon
       const newCategory = {
         ...response.data.data,
-        name: newName, // Use input value for name
-        icon: "https://medmedone.s3.ap-south-1.amazonaws.com/med1-media/1745125211810_medicine__2__1.svg",
+        name: newName,
+        icon: iconUrl,
       };
       setCategories([...categories, newCategory]);
       setAddDialogOpen(false);
       setNewName("");
       setNewCatType("medicine");
+      setNewIcon(null);
       toast.success("Category added successfully", {
         style: {
           backgroundColor: "#DCFCE7",
@@ -178,8 +234,11 @@ export default function Page() {
           borderColor: "#16A34A",
         },
       });
-      // Removed window.location.reload()
     } catch (err) {
+      console.error(
+        "Error adding category:",
+        err.response?.data || err.message
+      );
       toast.error("Failed to add category", {
         style: {
           backgroundColor: "#FEE2E2",
@@ -237,7 +296,7 @@ export default function Page() {
             <div className="grid grid-cols-1 sm:grid-cols-2 mt-10 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredCategories.map((category) => (
                 <div
-                  key={category._id || Math.random().toString(36).substr(2, 9)} // Fallback key if _id is undefined
+                  key={category._id || Math.random().toString(36).substr(2, 9)}
                   className="border rounded-lg p-4 flex flex-col items-center shadow-sm hover:shadow-md transition-shadow relative"
                 >
                   <DropdownMenu>
@@ -263,21 +322,29 @@ export default function Page() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <Image
-                    src={
-                      category.icon ||
-                      "https://medmedone.s3.ap-south-1.amazonaws.com/med1-media/1745125211810_medicine__2__1.svg"
-                    }
-                    alt={category.name || "Category"}
-                    width={64}
-                    height={64}
-                    className="mb-2"
-                    onError={(e) => {
-                      e.target.src = "/placeholder.png";
-                    }}
-                  />
+                  <div className="w-16 h-16 relative">
+                    <Image
+                      src={
+                        category.icon ||
+                        "https://medmedone.s3.ap-south-1.amazonaws.com/med1-media/1745125211810_medicine__2__1.svg"
+                      }
+                      alt={
+                        category.name
+                          ? `${category.name} category icon`
+                          : "Default category icon"
+                      }
+                      fill
+                      sizes="64px"
+                      loading="lazy"
+                      style={{ objectFit: "contain" }}
+                      className="mb-2"
+                      onError={(e) => {
+                        e.target.src = "/placeholder.png";
+                      }}
+                    />
+                  </div>
                   <h2 className="text-lg font-semibold text-center">
-                    {category.name || "Unnamed Category"} {/* Fallback name */}
+                    {category.name || "Unnamed Category"}
                   </h2>
                   <p className="text-sm text-gray-500 capitalize">
                     {category.catType}
@@ -307,6 +374,20 @@ export default function Page() {
                 onChange={(e) => setNewName(e.target.value)}
                 className="w-full p-2 border rounded"
                 placeholder="Category Name"
+              />
+              <select
+                value={newCatType}
+                onChange={(e) => setNewCatType(e.target.value)}
+                className="w-full p-2 border rounded"
+              >
+                <option value="medicine">Medicine</option>
+                <option value="store">Store</option>
+              </select>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleEditIconChange}
+                className="w-full p-2 border rounded"
               />
             </div>
           </div>
@@ -373,6 +454,12 @@ export default function Page() {
                 <option value="medicine">Medicine</option>
                 <option value="store">Store</option>
               </select>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleIconChange}
+                className="w-full p-2 border rounded"
+              />
             </div>
           </div>
           <div className="flex justify-end px-6 pb-6 gap-2">
