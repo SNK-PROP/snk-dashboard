@@ -5,682 +5,402 @@ import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
-import axios from "axios";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { IconDotsVertical, IconX } from "@tabler/icons-react";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { apiService } from "@/lib/api";
+import {
+  IconSearch,
+  IconEye,
+  IconUserCheck,
+  IconUserX,
+  IconDownload,
+  IconRefresh,
+} from "@tabler/icons-react";
 import { toast } from "sonner";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
-const userColumns = [
-  { accessorKey: "id", header: "S.No" },
-  { accessorKey: "fullName", header: "User Name" },
-  { accessorKey: "email", header: "Email" },
-  { accessorKey: "mobile", header: "Phone Number" },
-  { accessorKey: "address", header: "Address" },
-  {
-    id: "actions",
-    cell: ({ row }) => {
-      const user = row.original;
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-              size="icon"
-            >
-              <IconDotsVertical />
-              <span className="sr-only">Open menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            <DropdownMenuItem
-              onSelect={() => {
-                window.dispatchEvent(
-                  new CustomEvent("editUser", { detail: user })
-                );
-              }}
-            >
-              Edit
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
-  },
-];
 
-export default function Page() {
-  const [tableData, setTableData] = useState([]);
+export default function UsersPage() {
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [openSheet, setOpenSheet] = useState(false);
-  const [editSheetOpen, setEditSheetOpen] = useState(false);
-  const [newUser, setNewUser] = useState({
-    fullName: "",
-    email: "",
-    mobile: "",
-    address: "",
-    houseNumber: "",
-    landmark: "",
-    city: "",
-    state: "",
-    pincode: "",
-  });
-  const [editUser, setEditUser] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [userTypeFilter, setUserTypeFilter] = useState("all");
+  const [verificationFilter, setVerificationFilter] = useState("all");
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const fetchData = async () => {
+  const fetchUsers = async () => {
     try {
       setLoading(true);
-      const config = {
-        method: "get",
-        maxBodyLength: Infinity,
-        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}users`,
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("userToken")}`,
-        },
+      const params = {
+        page: 1,
+        limit: 100,
       };
 
-      const response = await axios.request(config);
-      const userData = response.data.data.map((item, index) => {
-        let address = "N/A";
-        if (item.addresses && Array.isArray(item.addresses)) {
-          const homeAddress = item.addresses.find(
-            (addr) => addr.tag === "home"
-          );
-          if (homeAddress) {
-            address = `${homeAddress.houseNumber}, ${homeAddress.landmark}, ${homeAddress.city}, ${homeAddress.pincode}`;
-          }
-        }
-        return {
-          id: index + 1,
-          fullName: item.fullName || "N/A",
-          email: item.email || "N/A",
-          mobile: item.mobile || "N/A",
-          address,
-          original: item, // Store original data for editing
-        };
-      });
-      setTableData(userData);
-      setError(null);
+      if (userTypeFilter !== "all") {
+        params.userType = userTypeFilter;
+      }
+      if (verificationFilter !== "all") {
+        params.verificationStatus = verificationFilter;
+      }
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+
+      const response = await apiService.getUsers(params);
+      setUsers(response.users || []);
     } catch (error) {
       console.error("Error fetching users:", error);
-      setError("Failed to fetch user data");
-      toast.error("Failed to fetch users. Please try again.", {
-        style: {
-          backgroundColor: "#FEE2E2",
-          color: "#991B1B",
-          borderColor: "#EF4444",
-        },
-      });
+      toast.error("Failed to fetch users");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
-    const handleEditUser = (event) => {
-      const user = event.detail;
-      setEditUser(user);
-      setEditSheetOpen(true);
-      setNewUser({
-        fullName: user.fullName || "",
-        email: user.email || "",
-        mobile: user.mobile || "",
-        houseNumber: user.address.split(",")[0] || "",
-        landmark: user.address.split(",")[1] || "",
-        city: user.address.split(",")[2] || "",
-        pincode: user.address.split(",")[3] || "",
-        state:
-          user.original.addresses?.find((addr) => addr.tag === "home")?.state ||
-          "",
-      });
-    };
-    window.addEventListener("editUser", handleEditUser);
-    return () => window.removeEventListener("editUser", handleEditUser);
-  }, []);
+    fetchUsers();
+  }, [userTypeFilter, verificationFilter]);
 
-  const handleAddUser = async () => {
+  const handleSearch = () => {
+    fetchUsers();
+  };
+
+  const handleVerifyUser = async (userId, status) => {
     try {
-      const config = {
-        method: "post",
-        maxBodyLength: Infinity,
-        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}user`,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("userToken")}`,
-        },
-        data: JSON.stringify({
-          ...newUser,
-          addresses: [
-            {
-              tag: "home",
-              houseNumber: newUser.houseNumber || "",
-              landmark: newUser.landmark || "",
-              city: newUser.city || "",
-              state: newUser.state || "",
-              pincode: newUser.pincode || "",
-            },
-          ],
-        }),
-      };
-
-      await axios.request(config);
-      await fetchData();
-      setOpenSheet(false);
-      setNewUser({
-        fullName: "",
-        email: "",
-        mobile: "",
-        address: "",
-        houseNumber: "",
-        landmark: "",
-        city: "",
-        state: "",
-        pincode: "",
-      });
-      toast.success("User added successfully!", {
-        style: {
-          backgroundColor: "#DCFCE7",
-          color: "#166534",
-          borderColor: "#16A34A",
-        },
-      });
+      await apiService.verifyUser(userId, { verificationStatus: status });
+      toast.success(`User ${status} successfully`);
+      fetchUsers();
+      setDialogOpen(false);
     } catch (error) {
-      console.error("Error adding user:", error);
-      toast.error("Failed to add user. Please try again.", {
-        style: {
-          backgroundColor: "#FEE2E2",
-          color: "#991B1B",
-          borderColor: "#EF4444",
-        },
-      });
+      console.error("Error verifying user:", error);
+      toast.error("Failed to update user status");
     }
   };
 
-  const handleEditUser = async () => {
+  const handleExportUsers = async () => {
     try {
-      const config = {
-        method: "patch",
-        maxBodyLength: Infinity,
-        url: `${process.env.NEXT_PUBLIC_ADMIN_BACKEND_URL}user/${editUser.original._id}`,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("userToken")}`,
-        },
-        data: JSON.stringify({
-          ...newUser,
-          addresses: [
-            {
-              tag: "home",
-              houseNumber: newUser.houseNumber || "",
-              landmark: newUser.landmark || "",
-              city: newUser.city || "",
-              state: newUser.state || "",
-              pincode: newUser.pincode || "",
-            },
-          ],
-        }),
-      };
-
-      await axios.request(config);
-      await fetchData();
-      setEditSheetOpen(false);
-      setEditUser(null);
-      setNewUser({
-        fullName: "",
-        email: "",
-        mobile: "",
-        address: "",
-        houseNumber: "",
-        landmark: "",
-        city: "",
-        state: "",
-        pincode: "",
-      });
-      toast.success("User updated successfully!", {
-        style: {
-          backgroundColor: "#DCFCE7",
-          color: "#166534",
-          borderColor: "#16A34A",
-        },
-      });
+      const blob = await apiService.exportUsers("csv");
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "users-export.csv";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Users exported successfully");
     } catch (error) {
-      console.error("Error updating user:", error);
-      toast.error("Failed to update user. Please try again.", {
-        style: {
-          backgroundColor: "#FEE2E2",
-          color: "#991B1B",
-          borderColor: "#EF4444",
-        },
-      });
+      console.error("Error exporting users:", error);
+      toast.error("Failed to export users");
     }
   };
 
-  if (loading) {
-    return (
-      <SidebarProvider>
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
-          <div className="flex flex-1 flex-col items-center justify-start w-full min-h-0">
-            <div className="w-full max-w-6xl flex flex-col gap-0 mt-8">
-              <h1 className="text-2xl font-bold mb-1">Users</h1>
-              <p className="text-muted-foreground mb-4">Loading...</p>
-            </div>
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-    );
-  }
+  const getUserTypeColor = (userType) => {
+    switch (userType) {
+      case "admin":
+        return "bg-red-100 text-red-800";
+      case "broker":
+        return "bg-blue-100 text-blue-800";
+      case "sub_broker":
+        return "bg-purple-100 text-purple-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
 
-  if (error) {
-    return (
-      <SidebarProvider>
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
-          <div className="flex flex-1 flex-col items-center justify-start w-full min-h-0">
-            <div className="w-full max-w-6xl flex flex-col gap-0 mt-8">
-              <h1 className="text-2xl font-bold mb-1">Users</h1>
-              <p className="text-muted-foreground mb-4 text-red-500">{error}</p>
-            </div>
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-    );
-  }
+  const getVerificationColor = (status) => {
+    switch (status) {
+      case "verified":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+
+  const columns = [
+    {
+      accessorKey: "fullName",
+      header: "Full Name",
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+    },
+    {
+      accessorKey: "contactNumber",
+      header: "Phone",
+    },
+    {
+      accessorKey: "userType",
+      header: "Type",
+      cell: ({ row }) => (
+        <Badge className={getUserTypeColor(row.original.userType)}>
+          {row.original.userType}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "verificationStatus",
+      header: "Status",
+      cell: ({ row }) => (
+        <Badge className={getVerificationColor(row.original.verificationStatus)}>
+          {row.original.verificationStatus}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "createdAt",
+      header: "Joined",
+      cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setSelectedUser(row.original);
+            setDialogOpen(true);
+          }}
+        >
+          <IconEye className="h-4 w-4" />
+        </Button>
+      ),
+    },
+  ];
+
 
   return (
     <SidebarProvider>
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        <div className="flex flex-1 flex-col items-center justify-start w-full min-h-0">
-          <div className="w-full max-w-6xl flex flex-col gap-0 mt-8">
-            <div className="flex justify-between items-center">
+        <div className="flex flex-1 flex-col">
+          <div className="@container/main flex flex-1 flex-col gap-4 p-4 md:p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold mb-1">Users</h1>
-                <p className="text-muted-foreground mb-4">
-                  Manage your users and their details.
+                <h1 className="text-2xl font-bold">User Management</h1>
+                <p className="text-muted-foreground">
+                  Manage users, brokers, and verification status
                 </p>
               </div>
-              <Sheet open={openSheet} onOpenChange={setOpenSheet}>
-                <SheetTrigger asChild>
-                  <Button variant="default">Add User</Button>
-                </SheetTrigger>
-                <SheetContent className="max-w-md w-full p-0 bg-white shadow-lg flex flex-col">
-                  <SheetHeader className="px-6 pt-6">
-                    <SheetTitle>Add New User</SheetTitle>
-                    <SheetDescription>
-                      Enter user details below. Click save when you're done.
-                    </SheetDescription>
-                  </SheetHeader>
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleAddUser();
-                    }}
-                    className="flex flex-col gap-4 flex-1 px-6 mb-6 mt-4"
-                  >
-                    <div>
-                      <label
-                        htmlFor="fullName"
-                        className="block text-sm font-medium mb-1"
-                      >
-                        Full Name
-                      </label>
-                      <input
-                        id="fullName"
-                        value={newUser.fullName}
-                        onChange={(e) =>
-                          setNewUser({ ...newUser, fullName: e.target.value })
-                        }
-                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                        placeholder="Enter full name"
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleExportUsers}>
+                  <IconDownload className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+                <Button variant="outline" onClick={fetchUsers} disabled={loading}>
+                  <IconRefresh
+                    className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+                  />
+                  Refresh
+                </Button>
+              </div>
+            </div>
+
+            {/* Filters */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div>
+                    <Label htmlFor="search">Search Users</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="search"
+                        placeholder="Search by name or email..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyPress={(e) => e.key === "Enter" && handleSearch()}
                       />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="email"
-                        className="block text-sm font-medium mb-1"
-                      >
-                        Email
-                      </label>
-                      <input
-                        id="email"
-                        value={newUser.email}
-                        onChange={(e) =>
-                          setNewUser({ ...newUser, email: e.target.value })
-                        }
-                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                        placeholder="Enter email"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="mobile"
-                        className="block text-sm font-medium mb-1"
-                      >
-                        Phone Number
-                      </label>
-                      <input
-                        id="mobile"
-                        value={newUser.mobile}
-                        onChange={(e) =>
-                          setNewUser({ ...newUser, mobile: e.target.value })
-                        }
-                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                        placeholder="Enter phone number"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="houseNumber"
-                        className="block text-sm font-medium mb-1"
-                      >
-                        Address
-                      </label>
-                      <input
-                        id="houseNumber"
-                        value={newUser.houseNumber}
-                        onChange={(e) =>
-                          setNewUser({
-                            ...newUser,
-                            houseNumber: e.target.value,
-                          })
-                        }
-                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                        placeholder="Enter Address"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="landmark"
-                        className="block text-sm font-medium mb-1"
-                      >
-                        Landmark
-                      </label>
-                      <input
-                        id="landmark"
-                        value={newUser.landmark}
-                        onChange={(e) =>
-                          setNewUser({ ...newUser, landmark: e.target.value })
-                        }
-                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                        placeholder="Enter Landmark"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="city"
-                        className="block text-sm font-medium mb-1"
-                      >
-                        City
-                      </label>
-                      <input
-                        id="city"
-                        value={newUser.city}
-                        onChange={(e) =>
-                          setNewUser({ ...newUser, city: e.target.value })
-                        }
-                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                        placeholder="Enter City"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="state"
-                        className="block text-sm font-medium mb-1"
-                      >
-                        State
-                      </label>
-                      <input
-                        id="state"
-                        value={newUser.state}
-                        onChange={(e) =>
-                          setNewUser({ ...newUser, state: e.target.value })
-                        }
-                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                        placeholder="Enter State"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="pincode"
-                        className="block text-sm font-medium mb-1"
-                      >
-                        Pincode
-                      </label>
-                      <input
-                        id="pincode"
-                        value={newUser.pincode}
-                        onChange={(e) =>
-                          setNewUser({ ...newUser, pincode: e.target.value })
-                        }
-                        className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                        placeholder="Enter Pincode"
-                      />
-                    </div>
-                    <div className="mt-auto flex flex-col gap-3">
-                      <Button
-                        variant="default"
-                        type="submit"
-                        className="w-full"
-                      >
-                        Save User
-                      </Button>
-                      <Button
-                        variant="outline"
-                        type="button"
-                        onClick={() => setOpenSheet(false)}
-                        className="w-full"
-                      >
-                        Cancel
+                      <Button onClick={handleSearch}>
+                        <IconSearch className="h-4 w-4" />
                       </Button>
                     </div>
-                  </form>
-                </SheetContent>
-              </Sheet>
-            </div>
-            <Sheet open={editSheetOpen} onOpenChange={setEditSheetOpen}>
-              <SheetContent className="max-w-md w-full p-0 bg-white shadow-lg flex flex-col">
-                <SheetHeader className="px-6 pt-6">
-                  <SheetTitle>Edit User</SheetTitle>
-                  <SheetDescription>
-                    Update user details below. Click save when you're done.
-                  </SheetDescription>
-                </SheetHeader>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleEditUser();
-                  }}
-                  className="flex flex-col gap-4 flex-1 px-6 mb-6 mt-4"
-                >
-                  <div>
-                    <label
-                      htmlFor="editFullName"
-                      className="block text-sm font-medium mb-1"
-                    >
-                      Full Name
-                    </label>
-                    <input
-                      id="editFullName"
-                      value={newUser.fullName}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, fullName: e.target.value })
-                      }
-                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                      placeholder="Enter full name"
-                    />
                   </div>
                   <div>
-                    <label
-                      htmlFor="editEmail"
-                      className="block text-sm font-medium mb-1"
-                    >
-                      Email
-                    </label>
-                    <input
-                      id="editEmail"
-                      value={newUser.email}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, email: e.target.value })
-                      }
-                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                      placeholder="Enter email"
-                    />
+                    <Label>User Type</Label>
+                    <Select value={userTypeFilter} onValueChange={setUserTypeFilter}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="user">Users</SelectItem>
+                        <SelectItem value="broker">Brokers</SelectItem>
+                        <SelectItem value="sub_broker">Sub Brokers</SelectItem>
+                        <SelectItem value="admin">Admins</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
-                    <label
-                      htmlFor="editMobile"
-                      className="block text-sm font-medium mb-1"
+                    <Label>Verification Status</Label>
+                    <Select
+                      value={verificationFilter}
+                      onValueChange={setVerificationFilter}
                     >
-                      Phone Number
-                    </label>
-                    <input
-                      id="editMobile"
-                      value={newUser.mobile}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, mobile: e.target.value })
-                      }
-                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                      placeholder="Enter phone number"
-                    />
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="verified">Verified</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div>
-                    <label
-                      htmlFor="editHouseNumber"
-                      className="block text-sm font-medium mb-1"
-                    >
-                      Address
-                    </label>
-                    <input
-                      id="editHouseNumber"
-                      value={newUser.houseNumber}
-                      onChange={(e) =>
-                        setNewUser({
-                          ...newUser,
-                          houseNumber: e.target.value,
-                        })
-                      }
-                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                      placeholder="Enter Address"
-                    />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Users Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  Users ({users.length})
+                  {loading && " - Loading..."}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DataTable data={users} columns={columns} />
+              </CardContent>
+            </Card>
+
+            {/* User Details Dialog */}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>User Details</DialogTitle>
+                </DialogHeader>
+                {selectedUser && (
+                  <div className="space-y-6">
+                    {/* Basic Info */}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <Label className="text-sm font-medium">Full Name</Label>
+                        <p className="text-sm">{selectedUser.fullName}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Email</Label>
+                        <p className="text-sm">{selectedUser.email}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Phone</Label>
+                        <p className="text-sm">{selectedUser.contactNumber}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Location</Label>
+                        <p className="text-sm">{selectedUser.location || "N/A"}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">User Type</Label>
+                        <Badge className={getUserTypeColor(selectedUser.userType)}>
+                          {selectedUser.userType}
+                        </Badge>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Status</Label>
+                        <Badge
+                          className={getVerificationColor(
+                            selectedUser.verificationStatus
+                          )}
+                        >
+                          {selectedUser.verificationStatus}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Property Types */}
+                    {selectedUser.propertyType?.length > 0 && (
+                      <div>
+                        <Label className="text-sm font-medium">
+                          Interested Property Types
+                        </Label>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedUser.propertyType.map((type, index) => (
+                            <Badge key={index} variant="secondary">
+                              {type}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* KYC Documents */}
+                    {selectedUser.kycDocuments?.length > 0 && (
+                      <div>
+                        <Label className="text-sm font-medium">KYC Documents</Label>
+                        <div className="space-y-2 mt-2">
+                          {selectedUser.kycDocuments.map((doc, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between p-2 border rounded"
+                            >
+                              <div>
+                                <p className="text-sm font-medium">{doc.type}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <Badge className={getVerificationColor(doc.status)}>
+                                {doc.status}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    {selectedUser.verificationStatus === "pending" && (
+                      <div className="flex gap-2 pt-4">
+                        <Button
+                          onClick={() =>
+                            handleVerifyUser(selectedUser._id, "verified")
+                          }
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <IconUserCheck className="h-4 w-4 mr-2" />
+                          Verify User
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={() =>
+                            handleVerifyUser(selectedUser._id, "rejected")
+                          }
+                        >
+                          <IconUserX className="h-4 w-4 mr-2" />
+                          Reject User
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <label
-                      htmlFor="editLandmark"
-                      className="block text-sm font-medium mb-1"
-                    >
-                      Landmark
-                    </label>
-                    <input
-                      id="editLandmark"
-                      value={newUser.landmark}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, landmark: e.target.value })
-                      }
-                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                      placeholder="Enter Landmark"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="editCity"
-                      className="block text-sm font-medium mb-1"
-                    >
-                      City
-                    </label>
-                    <input
-                      id="editCity"
-                      value={newUser.city}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, city: e.target.value })
-                      }
-                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                      placeholder="Enter City"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="editState"
-                      className="block text-sm font-medium mb-1"
-                    >
-                      State
-                    </label>
-                    <input
-                      id="editState"
-                      value={newUser.state}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, state: e.target.value })
-                      }
-                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                      placeholder="Enter State"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="editPincode"
-                      className="block text-sm font-medium mb-1"
-                    >
-                      Pincode
-                    </label>
-                    <input
-                      id="editPincode"
-                      value={newUser.pincode}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, pincode: e.target.value })
-                      }
-                      className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm placeholder:text-sm"
-                      placeholder="Enter Pincode"
-                    />
-                  </div>
-                  <div className="mt-auto flex flex-col gap-3">
-                    <Button variant="default" type="submit" className="w-full">
-                      Update User
-                    </Button>
-                    <Button
-                      variant="outline"
-                      type="button"
-                      onClick={() => setEditSheetOpen(false)}
-                      className="w-full"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              </SheetContent>
-            </Sheet>
-            <div className="rounded-xl overflow-hidden mt-10">
-              <DataTable data={tableData} columns={userColumns} />
-            </div>
+                )}
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </SidebarInset>

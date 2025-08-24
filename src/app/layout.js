@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Med-1 Web",
-  description: "",
+  title: "SNK Real Estate - Admin Dashboard",
+  description: "Comprehensive admin control panel for SNK Real Estate Platform",
 };
 
 export default function RootLayout({ children }) {
