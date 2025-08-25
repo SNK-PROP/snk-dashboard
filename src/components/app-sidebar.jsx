@@ -8,7 +8,9 @@ import {
   IconHome,
   IconUserCheck,
   IconChartBar,
-  IconBuildingStore
+  IconBuildingStore,
+  IconBriefcase,
+  IconGift
 } from "@tabler/icons-react";
 import {
   DropdownMenu,
@@ -53,6 +55,16 @@ const staticData = {
       title: "Brokers",
       url: "/brokers",
       icon: IconUserCheck,
+    },
+    {
+      title: "Employees",
+      url: "/employees",
+      icon: IconBriefcase,
+    },
+    {
+      title: "Referrals",
+      url: "/referrals",
+      icon: IconGift,
     },
     {
       title: "Analytics",

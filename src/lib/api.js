@@ -39,6 +39,27 @@ class ApiService {
     );
   }
 
+  // Generic HTTP methods
+  async get(url, config = {}) {
+    const response = await this.api.get(url, config);
+    return response.data;
+  }
+
+  async post(url, data, config = {}) {
+    const response = await this.api.post(url, data, config);
+    return response.data;
+  }
+
+  async put(url, data, config = {}) {
+    const response = await this.api.put(url, data, config);
+    return response.data;
+  }
+
+  async delete(url, config = {}) {
+    const response = await this.api.delete(url, config);
+    return response.data;
+  }
+
   // Authentication
   async login(email, password) {
     const response = await this.api.post('/auth/login', { email, password });
@@ -186,6 +207,59 @@ class ApiService {
 
   async getSubBrokers(brokerId) {
     const response = await this.api.get(`/brokers/${brokerId}/sub-brokers`);
+    return response.data;
+  }
+
+  // Employees Management
+  async getEmployees(params = {}) {
+    try {
+      const response = await this.api.get('/employees', { params });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 403) {
+        console.warn('Admin access required for employees endpoint');
+        return { 
+          employees: [], 
+          pagination: { current: 1, pages: 1, total: 0 },
+          message: 'Admin privileges required for employee data'
+        };
+      }
+      throw error;
+    }
+  }
+
+  async getEmployeeById(id) {
+    const response = await this.api.get(`/employees/${id}`);
+    return response.data;
+  }
+
+  async createEmployee(employeeData) {
+    const response = await this.api.post('/employees', employeeData);
+    return response.data;
+  }
+
+  async updateEmployee(id, employeeData) {
+    const response = await this.api.put(`/employees/${id}`, employeeData);
+    return response.data;
+  }
+
+  async deleteEmployee(id) {
+    const response = await this.api.delete(`/employees/${id}`);
+    return response.data;
+  }
+
+  async getEmployeeDashboard() {
+    const response = await this.api.get('/employees/dashboard/stats');
+    return response.data;
+  }
+
+  async getReferralStats(params = {}) {
+    const response = await this.api.get('/employees/stats/overview', { params });
+    return response.data;
+  }
+
+  async validateReferralCode(code) {
+    const response = await this.api.get(`/employees/referral/validate/${code}`);
     return response.data;
   }
 
