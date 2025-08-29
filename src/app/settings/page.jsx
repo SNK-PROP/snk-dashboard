@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -45,7 +44,7 @@ import {
   IconShield,
   IconDatabase,
   IconBell,
-  IconSave,
+  IconDeviceFloppy,
   IconTrash,
   IconPlus,
   IconEye,
@@ -274,7 +273,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <Button onClick={handleSaveSettings} disabled={loading}>
-                <IconSave className="h-4 w-4 mr-2" />
+                <IconDeviceFloppy className="h-4 w-4 mr-2" />
                 Save Settings
               </Button>
             </div>
@@ -354,11 +353,13 @@ export default function SettingsPage() {
                           Allow new users to register
                         </p>
                       </div>
-                      <Switch
+                      <input
+                        type="checkbox"
                         checked={settings.userRegistration}
-                        onCheckedChange={(checked) =>
-                          setSettings({ ...settings, userRegistration: checked })
+                        onChange={(e) =>
+                          setSettings({ ...settings, userRegistration: e.target.checked })
                         }
+                        className="h-4 w-4 rounded border border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div className="flex items-center justify-between">
@@ -368,11 +369,13 @@ export default function SettingsPage() {
                           Allow broker registration applications
                         </p>
                       </div>
-                      <Switch
+                      <input
+                        type="checkbox"
                         checked={settings.brokerRegistration}
-                        onCheckedChange={(checked) =>
-                          setSettings({ ...settings, brokerRegistration: checked })
+                        onChange={(e) =>
+                          setSettings({ ...settings, brokerRegistration: e.target.checked })
                         }
+                        className="h-4 w-4 rounded border border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   </CardContent>
@@ -393,11 +396,13 @@ export default function SettingsPage() {
                           Send email notifications for important events
                         </p>
                       </div>
-                      <Switch
+                      <input
+                        type="checkbox"
                         checked={settings.emailNotifications}
-                        onCheckedChange={(checked) =>
-                          setSettings({ ...settings, emailNotifications: checked })
+                        onChange={(e) =>
+                          setSettings({ ...settings, emailNotifications: e.target.checked })
                         }
+                        className="h-4 w-4 rounded border border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div className="flex items-center justify-between">
@@ -407,11 +412,13 @@ export default function SettingsPage() {
                           Send SMS alerts for critical updates
                         </p>
                       </div>
-                      <Switch
+                      <input
+                        type="checkbox"
                         checked={settings.smsNotifications}
-                        onCheckedChange={(checked) =>
-                          setSettings({ ...settings, smsNotifications: checked })
+                        onChange={(e) =>
+                          setSettings({ ...settings, smsNotifications: e.target.checked })
                         }
+                        className="h-4 w-4 rounded border border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   </CardContent>
@@ -645,11 +652,13 @@ export default function SettingsPage() {
                           Put the system in maintenance mode
                         </p>
                       </div>
-                      <Switch
+                      <input
+                        type="checkbox"
                         checked={settings.maintenanceMode}
-                        onCheckedChange={(checked) =>
-                          setSettings({ ...settings, maintenanceMode: checked })
+                        onChange={(e) =>
+                          setSettings({ ...settings, maintenanceMode: e.target.checked })
                         }
+                        className="h-4 w-4 rounded border border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
 

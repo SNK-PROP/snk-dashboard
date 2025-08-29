@@ -10,7 +10,8 @@ import {
   IconChartBar,
   IconBuildingStore,
   IconBriefcase,
-  IconGift
+  IconGift,
+  IconDeviceMobile
 } from "@tabler/icons-react";
 import {
   DropdownMenu,
@@ -70,6 +71,11 @@ const staticData = {
       title: "Analytics",
       url: "/analytics",
       icon: IconChartBar,
+    },
+    {
+      title: "App Versions",
+      url: "/app-versions",
+      icon: IconDeviceMobile,
     },
   ],
   navSecondary: [
