@@ -54,7 +54,10 @@ export default function PropertiesPage() {
         limit: 100,
       };
 
-      if (statusFilter !== "all") {
+      // For admin dashboard, we want to see all properties regardless of status
+      if (statusFilter === "all") {
+        params.includeAll = true; // This will show all properties
+      } else {
         params.status = statusFilter;
       }
       if (typeFilter !== "all") {
@@ -65,10 +68,30 @@ export default function PropertiesPage() {
       }
 
       const response = await apiService.getProperties(params);
-      setProperties(response.properties || []);
+      
+      const rawProperties = response.properties || response || [];
+      
+      // Transform data to ensure consistent field names
+      const propertiesData = rawProperties.map(property => ({
+        ...property,
+        id: property._id || property.id, // Ensure id field exists
+        title: property.title || `Property in ${property.location?.city || 'Unknown Location'}`,
+        location: property.location || {},
+        price: property.price || 0,
+        status: property.status || 'Unknown',
+        brokerName: property.brokerName || 'Unknown Broker',
+        createdAt: property.createdAt || new Date().toISOString()
+      }));
+      
+      setProperties(propertiesData);
+      
+      if (propertiesData.length === 0) {
+        toast.info("No properties found. Note: Backend only shows Active properties by default.");
+      }
     } catch (error) {
       console.error("Error fetching properties:", error);
-      toast.error("Failed to fetch properties");
+      toast.error(`Failed to fetch properties: ${error.message}`);
+      setProperties([]);
     } finally {
       setLoading(false);
     }
@@ -89,19 +112,45 @@ export default function PropertiesPage() {
       fetchProperties();
     } catch (error) {
       console.error("Error toggling featured status:", error);
-      toast.error("Failed to update featured status");
+      
+      // More detailed error handling
+      let errorMessage = "Failed to update featured status";
+      if (error.response?.status === 401) {
+        errorMessage = "Authentication required. Please login as admin.";
+      } else if (error.response?.status === 403) {
+        errorMessage = "Not authorized. Admin privileges required to update featured status.";
+      } else if (error.response?.status === 404) {
+        errorMessage = "Property not found.";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
   const handleStatusChange = async (propertyId, newStatus) => {
     try {
       await apiService.updatePropertyStatus(propertyId, newStatus);
-      toast.success(`Property ${newStatus} successfully`);
+      toast.success(`Property status changed to ${newStatus} successfully`);
       fetchProperties();
       setDialogOpen(false);
     } catch (error) {
       console.error("Error updating property status:", error);
-      toast.error("Failed to update property status");
+      
+      // More detailed error handling
+      let errorMessage = "Failed to update property status";
+      if (error.response?.status === 401) {
+        errorMessage = "Authentication required. Please login as admin.";
+      } else if (error.response?.status === 403) {
+        errorMessage = "Not authorized. Admin privileges required to update property status.";
+      } else if (error.response?.status === 404) {
+        errorMessage = "Property not found.";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
@@ -343,7 +392,34 @@ export default function PropertiesPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <DataTable data={properties} columns={columns} />
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                    <span className="ml-2">Loading properties...</span>
+                  </div>
+                ) : properties.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-gray-500 mb-2">No properties found</div>
+                    <div className="text-sm text-gray-400">
+                      This could be because:
+                      <ul className="mt-2 space-y-1">
+                        <li>• No properties exist in the database</li>
+                        <li>• All properties are not in 'Active' status (backend limitation)</li>
+                        <li>• Current filters are too restrictive</li>
+                        <li>• API connection issue</li>
+                      </ul>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={fetchProperties} 
+                      className="mt-4"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                ) : (
+                  <DataTable data={properties} columns={columns} />
+                )}
               </CardContent>
             </Card>
 

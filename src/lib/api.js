@@ -1,11 +1,11 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://snk-backend-ten.vercel.app/api';
 
 class ApiService {
   constructor() {
     this.api = axios.create({
-      baseURL: 'http://localhost:5000/api',
+      baseURL: API_BASE_URL,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -162,18 +162,103 @@ class ApiService {
   }
 
   async updatePropertyStatus(id, status) {
-    const response = await this.api.put(`/properties/${id}`, { status });
-    return response.data;
+    try {
+      // Try new admin-only endpoint first
+      const response = await this.api.patch(`/properties/${id}/status`, { status });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        // Fallback to original endpoint - need to get full property data first
+        console.warn('Using fallback endpoint for property status update');
+        try {
+          const propertyResponse = await this.api.get(`/properties/${id}`);
+          const property = propertyResponse.data.property;
+          
+          // Update with full property data plus new status
+          const updateData = {
+            title: property.title,
+            description: property.description,
+            propertyType: property.propertyType,
+            transactionType: property.transactionType,
+            price: property.price,
+            area: property.area,
+            areaUnit: property.areaUnit,
+            bedrooms: property.bedrooms,
+            bathrooms: property.bathrooms,
+            location: property.location,
+            amenities: property.amenities || [],
+            features: property.features || [],
+            images: property.images || [],
+            status: status
+          };
+          
+          const response = await this.api.put(`/properties/${id}`, updateData);
+          return response.data;
+        } catch (fallbackError) {
+          console.error('Fallback property update failed:', fallbackError);
+          throw new Error(`Failed to update property status: ${fallbackError.response?.data?.message || fallbackError.message}`);
+        }
+      }
+      throw error;
+    }
   }
 
   async toggleFeaturedProperty(id, isFeatured) {
-    const response = await this.api.put(`/properties/${id}`, { isFeatured });
-    return response.data;
+    try {
+      // Try new admin-only endpoint first
+      const response = await this.api.patch(`/properties/${id}/featured`, { isFeatured });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        // Fallback to original endpoint - need to get full property data first
+        console.warn('Using fallback endpoint for property featured update');
+        try {
+          const propertyResponse = await this.api.get(`/properties/${id}`);
+          const property = propertyResponse.data.property;
+          
+          // Update with full property data plus new featured status
+          const updateData = {
+            title: property.title,
+            description: property.description,
+            propertyType: property.propertyType,
+            transactionType: property.transactionType,
+            price: property.price,
+            area: property.area,
+            areaUnit: property.areaUnit,
+            bedrooms: property.bedrooms,
+            bathrooms: property.bathrooms,
+            location: property.location,
+            amenities: property.amenities || [],
+            features: property.features || [],
+            images: property.images || [],
+            isFeatured: isFeatured
+          };
+          
+          const response = await this.api.put(`/properties/${id}`, updateData);
+          return response.data;
+        } catch (fallbackError) {
+          console.error('Fallback property featured update failed:', fallbackError);
+          throw new Error(`Failed to update featured status: ${fallbackError.response?.data?.message || fallbackError.message}`);
+        }
+      }
+      throw error;
+    }
   }
 
   async deleteProperty(id) {
-    const response = await this.api.delete(`/properties/${id}`);
-    return response.data;
+    try {
+      // Try new admin-only endpoint first
+      const response = await this.api.delete(`/properties/${id}/admin`);
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        // Fallback to original endpoint if new admin endpoint doesn't exist yet
+        console.warn('Using fallback endpoint for property deletion');
+        const response = await this.api.delete(`/properties/${id}`);
+        return response.data;
+      }
+      throw error;
+    }
   }
 
   // Brokers Management

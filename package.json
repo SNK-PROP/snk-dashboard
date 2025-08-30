@@ -1,6 +1,7 @@
 {
-  "name": "med1-admin",
-  "version": "0.1.0",
+  "name": "snk-dashboard",
+  "version": "1.0.0",
+  "description": "SNK Real Estate Admin Dashboard",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",

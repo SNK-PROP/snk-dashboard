@@ -1,36 +1,167 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# SNK Real Estate Admin Dashboard
 
-## Getting Started
+A modern, responsive admin dashboard for managing SNK Real Estate properties, users, and analytics.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- 🏠 **Property Management** - View, edit, approve/reject property listings
+- 👥 **User Management** - Manage users, brokers, and verification status
+- 📊 **Analytics Dashboard** - Real-time insights and charts
+- 🎛️ **Admin Controls** - System settings and audit logs
+- 📱 **App Version Management** - Control mobile app versions
+- 🔐 **Secure Authentication** - Role-based access control
+
+## Tech Stack
+
+- **Framework**: Next.js 15.3.4
+- **UI Components**: Radix UI + Tailwind CSS
+- **Charts**: Recharts
+- **Data Tables**: TanStack Table
+- **Icons**: Tabler Icons + Lucide React
+- **HTTP Client**: Axios
+- **Deployment**: Vercel
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. Create environment file:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+4. Update `.env.local` with your API URL:
+   ```
+   NEXT_PUBLIC_API_URL=https://your-backend-url.vercel.app/api
+   ```
+
+5. Run development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+6. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Deployment to Vercel
+
+### Option 1: Deploy via Vercel Dashboard
+
+1. Push your code to GitHub/GitLab/Bitbucket
+2. Go to [vercel.com](https://vercel.com) and import your repository
+3. Configure environment variables in Vercel dashboard:
+   - `NEXT_PUBLIC_API_URL`: Your backend API URL
+4. Deploy!
+
+### Option 2: Deploy via Vercel CLI
+
+1. Install Vercel CLI:
+   ```bash
+   npm i -g vercel
+   ```
+
+2. Login to Vercel:
+   ```bash
+   vercel login
+   ```
+
+3. Deploy:
+   ```bash
+   vercel
+   ```
+
+4. Follow the prompts and set environment variables when asked
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_API_URL` | Backend API URL | `https://snk-backend-ten.vercel.app/api` |
+
+## Demo Login Credentials
+
+**Admin Demo Account:**
+- Email: `admin@snk.com`
+- Password: `admin123`
+
+**Real Broker Account:**
+- Email: `snkprop59@gmail.com`
+- Password: `123456`
+
+## Project Structure
+
+```
+snk-dashboard/
+├── src/
+│   ├── app/           # Next.js 13+ app directory
+│   ├── components/    # Reusable UI components
+│   ├── lib/          # Utilities and API client
+│   └── hooks/        # Custom React hooks
+├── public/           # Static assets
+└── vercel.json       # Vercel deployment configuration
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Features Overview
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### Dashboard
+- Overview statistics
+- Recent activities
+- Interactive charts with real-time data
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Property Management
+- View all properties with advanced filtering
+- Update property status (Active, Inactive, Sold, Rented)
+- Toggle featured properties
+- Property details with image gallery
 
-## Learn More
+### User Management
+- View all users and brokers
+- Verification status management
+- User details and KYC documents
 
-To learn more about Next.js, take a look at the following resources:
+### Analytics
+- User growth trends
+- Property type distribution
+- Location-based analytics
+- Export functionality
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Settings
+- System configuration
+- Admin user management
+- Audit logs
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API Integration
 
-## Deploy on Vercel
+The dashboard connects to the SNK backend API deployed at:
+`https://snk-backend-ten.vercel.app/api`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Authentication is handled via JWT tokens stored in localStorage.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+Private project for SNK Real Estate.
+
+## Support
+
+For support and questions, contact the development team.

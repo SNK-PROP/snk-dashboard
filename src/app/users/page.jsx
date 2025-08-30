@@ -63,10 +63,36 @@ export default function UsersPage() {
       }
 
       const response = await apiService.getUsers(params);
-      setUsers(response.users || []);
+      
+      // The getUsers method falls back to brokers if no dedicated user endpoint exists
+      const rawUsers = response.users || response.brokers || [];
+      
+      // Transform data to ensure consistent field names
+      const usersData = rawUsers.map(user => ({
+        ...user,
+        id: user._id || user.id, // Ensure id field exists
+        fullName: user.fullName || user.businessName || 'Unknown User',
+        email: user.email || 'No email',
+        contactNumber: user.contactNumber || 'No contact',
+        userType: user.userType || 'broker',
+        verificationStatus: user.verificationStatus || (user.isVerified ? 'verified' : 'pending'),
+        createdAt: user.createdAt || user.registrationDate || new Date().toISOString()
+      }));
+      
+      setUsers(usersData);
+      
+      if (usersData.length === 0) {
+        toast.info("No users found. Note: Currently showing broker data as user fallback.");
+      }
+      
+      // Show warning if we got limited access message
+      if (response.message) {
+        toast.warning(response.message);
+      }
     } catch (error) {
       console.error("Error fetching users:", error);
-      toast.error("Failed to fetch users");
+      toast.error(`Failed to fetch users: ${error.message}`);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -285,7 +311,34 @@ export default function UsersPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <DataTable data={users} columns={columns} />
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                    <span className="ml-2">Loading users...</span>
+                  </div>
+                ) : users.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-gray-500 mb-2">No users found</div>
+                    <div className="text-sm text-gray-400">
+                      This could be because:
+                      <ul className="mt-2 space-y-1">
+                        <li>• No users exist in the database</li>
+                        <li>• Currently showing brokers as user fallback</li>
+                        <li>• Current filters are too restrictive</li>
+                        <li>• API connection issue or permission denied</li>
+                      </ul>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={fetchUsers} 
+                      className="mt-4"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                ) : (
+                  <DataTable data={users} columns={columns} />
+                )}
               </CardContent>
             </Card>
 
