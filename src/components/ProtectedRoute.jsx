@@ -11,7 +11,7 @@ export default function ProtectedRoute({ children }) {
   const [isAdmin, setIsAdmin] = useState(false);
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/login'];
+  const publicRoutes = ['/login', '/forgot-password', '/reset-password'];
   const isPublicRoute = publicRoutes.includes(pathname);
 
   useEffect(() => {

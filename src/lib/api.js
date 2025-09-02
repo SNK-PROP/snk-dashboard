@@ -71,6 +71,17 @@ class ApiService {
     return response.data;
   }
 
+  // Password Reset Methods
+  async forgotPassword(email) {
+    const response = await this.api.post('/auth/forgot-password', { email });
+    return response.data;
+  }
+
+  async resetPassword(token, newPassword) {
+    const response = await this.api.post('/auth/reset-password', { token, newPassword });
+    return response.data;
+  }
+
   // Users Management (Note: Backend doesn't have dedicated user management routes)
   async getUsers(params = {}) {
     // Fallback: Get users from brokers endpoint

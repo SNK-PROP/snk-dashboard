@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,12 +18,21 @@ export function LoginForm({ className, ...props }) {
   const [error, setError] = useState("");
   const router = useRouter();
   
-  // Check for URL error parameter
+  // Check for URL parameters
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('error') === 'unauthorized') {
         setError('Access denied. Admin privileges required.');
+      }
+      if (urlParams.get('message') === 'password-reset-success') {
+        toast.success('Password reset successfully! Please sign in with your new password.', {
+          style: {
+            backgroundColor: '#DCFCE7',
+            color: '#166534',
+            borderColor: '#16A34A',
+          },
+        });
       }
     }
   }, []);
@@ -135,7 +145,7 @@ export function LoginForm({ className, ...props }) {
           </div>
           <div className="flex flex-col justify-center p-6 md:p-8 min-h-[400px]">
             <form onSubmit={handleLogin} className="space-y-6">
-              <div className="flex flex-col items-center text-center mb-6">
+              {/* <div className="flex flex-col items-center text-center mb-6">
                 <h1 className="text-2xl font-bold">SNK Admin Login</h1>
                 <p className="text-muted-foreground text-balance">
                   Access the admin dashboard
@@ -152,7 +162,7 @@ export function LoginForm({ className, ...props }) {
                   </div>
                   <p className="text-xs text-blue-500 mt-2">Note: Real account has broker privileges</p>
                 </div>
-              </div>
+              </div> */}
               <div className="grid gap-3">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
@@ -165,7 +175,15 @@ export function LoginForm({ className, ...props }) {
                 />
               </div>
               <div className="grid gap-3">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link 
+                    href="/forgot-password" 
+                    className="text-sm text-blue-600 hover:text-blue-500 font-medium"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <Input
                   id="password"
                   type="password"
