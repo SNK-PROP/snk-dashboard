@@ -33,7 +33,7 @@ import {
   IconDownload,
   IconRefresh,
   IconMapPin,
-  IconCurrency,
+  IconEdit,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
@@ -42,9 +42,12 @@ export default function PropertiesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [approvalFilter, setApprovalFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingProperty, setEditingProperty] = useState(null);
 
   const fetchProperties = async () => {
     try {
@@ -55,10 +58,13 @@ export default function PropertiesPage() {
       };
 
       // For admin dashboard, we want to see all properties regardless of status
-      if (statusFilter === "all") {
-        params.includeAll = true; // This will show all properties
-      } else {
+      params.includeAll = true; // Always use admin endpoint to see all properties
+      
+      if (statusFilter !== "all") {
         params.status = statusFilter;
+      }
+      if (approvalFilter !== "all") {
+        params.approvalStatus = approvalFilter;
       }
       if (typeFilter !== "all") {
         params.propertyType = typeFilter;
@@ -68,6 +74,7 @@ export default function PropertiesPage() {
       }
 
       const response = await apiService.getProperties(params);
+      console.log('Dashboard received properties response:', response);
       
       const rawProperties = response.properties || response || [];
       
@@ -86,7 +93,7 @@ export default function PropertiesPage() {
       setProperties(propertiesData);
       
       if (propertiesData.length === 0) {
-        toast.info("No properties found. Note: Backend only shows Active properties by default.");
+        toast.info("No properties found with current filters.");
       }
     } catch (error) {
       console.error("Error fetching properties:", error);
@@ -99,7 +106,7 @@ export default function PropertiesPage() {
 
   useEffect(() => {
     fetchProperties();
-  }, [statusFilter, typeFilter]);
+  }, [statusFilter, approvalFilter, typeFilter]);
 
   const handleSearch = () => {
     fetchProperties();
@@ -119,6 +126,35 @@ export default function PropertiesPage() {
         errorMessage = "Authentication required. Please login as admin.";
       } else if (error.response?.status === 403) {
         errorMessage = "Not authorized. Admin privileges required to update featured status.";
+      } else if (error.response?.status === 404) {
+        errorMessage = "Property not found.";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleApprovalChange = async (propertyId, action, reason = null) => {
+    try {
+      if (action === 'approve') {
+        await apiService.approveProperty(propertyId);
+        toast.success('Property approved successfully');
+      } else if (action === 'reject') {
+        await apiService.rejectProperty(propertyId, reason);
+        toast.success('Property rejected successfully');
+      }
+      fetchProperties();
+      setDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating property approval:", error);
+      
+      let errorMessage = `Failed to ${action} property`;
+      if (error.response?.status === 401) {
+        errorMessage = "Authentication required. Please login as admin.";
+      } else if (error.response?.status === 403) {
+        errorMessage = "Not authorized. Admin privileges required.";
       } else if (error.response?.status === 404) {
         errorMessage = "Property not found.";
       } else if (error.response?.data?.message) {
@@ -151,6 +187,45 @@ export default function PropertiesPage() {
       }
       
       toast.error(errorMessage);
+    }
+  };
+
+  const handleEditProperty = (property) => {
+    setEditingProperty({
+      id: property._id,
+      title: property.title,
+      description: property.description,
+      propertyType: property.propertyType,
+      transactionType: property.transactionType,
+      price: property.price,
+      area: property.area,
+      areaUnit: property.areaUnit,
+      bedrooms: property.bedrooms || 0,
+      bathrooms: property.bathrooms || 0,
+      location: {
+        address: property.location?.address || '',
+        city: property.location?.city || '',
+        state: property.location?.state || '',
+        pincode: property.location?.pincode || ''
+      },
+      amenities: property.amenities || [],
+      features: property.features || [],
+      status: property.status,
+      isFeatured: property.isFeatured
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      await apiService.updatePropertyDetails(editingProperty.id, editingProperty);
+      toast.success("Property updated successfully");
+      fetchProperties();
+      setEditDialogOpen(false);
+      setDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating property:", error);
+      toast.error("Failed to update property");
     }
   };
 
@@ -196,6 +271,19 @@ export default function PropertiesPage() {
         return "bg-blue-100 text-blue-800";
       case "Rented":
         return "bg-purple-100 text-purple-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getApprovalStatusColor = (approvalStatus) => {
+    switch (approvalStatus) {
+      case "approved":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -259,6 +347,15 @@ export default function PropertiesPage() {
       cell: ({ row }) => (
         <Badge className={getStatusColor(row.original.status)}>
           {row.original.status}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "approvalStatus",
+      header: "Approval",
+      cell: ({ row }) => (
+        <Badge className={getApprovalStatusColor(row.original.approvalStatus)}>
+          {row.original.approvalStatus || 'pending'}
         </Badge>
       ),
     },
@@ -331,7 +428,7 @@ export default function PropertiesPage() {
             {/* Filters */}
             <Card>
               <CardContent className="p-6">
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-5">
                   <div>
                     <Label htmlFor="search">Search Properties</Label>
                     <div className="flex gap-2">
@@ -379,6 +476,20 @@ export default function PropertiesPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div>
+                    <Label>Approval Status</Label>
+                    <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Approval</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -401,21 +512,41 @@ export default function PropertiesPage() {
                   <div className="text-center py-8">
                     <div className="text-gray-500 mb-2">No properties found</div>
                     <div className="text-sm text-gray-400">
-                      This could be because:
+                      <p className="mb-2">Current filters:</p>
+                      <ul className="space-y-1 mb-4">
+                        <li>• Status: <strong>{statusFilter}</strong></li>
+                        <li>• Approval: <strong>{approvalFilter}</strong></li>
+                        <li>• Type: <strong>{typeFilter}</strong></li>
+                        {searchTerm && <li>• Search: <strong>"{searchTerm}"</strong></li>}
+                      </ul>
+                      <p>This could be because:</p>
                       <ul className="mt-2 space-y-1">
                         <li>• No properties exist in the database</li>
-                        <li>• All properties are not in 'Active' status (backend limitation)</li>
                         <li>• Current filters are too restrictive</li>
-                        <li>• API connection issue</li>
+                        <li>• All properties are still pending approval</li>
+                        <li>• Database migration needed for approval status</li>
+                        <li>• API authentication issue</li>
                       </ul>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      onClick={fetchProperties} 
-                      className="mt-4"
-                    >
-                      Try Again
-                    </Button>
+                    <div className="flex gap-2 justify-center mt-4">
+                      <Button 
+                        variant="outline" 
+                        onClick={fetchProperties}
+                      >
+                        Refresh
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setStatusFilter("all");
+                          setApprovalFilter("all");
+                          setTypeFilter("all");
+                          setSearchTerm("");
+                        }}
+                      >
+                        Clear All Filters
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <DataTable data={properties} columns={columns} />
@@ -476,6 +607,12 @@ export default function PropertiesPage() {
                         <Label className="text-sm font-medium">Status</Label>
                         <Badge className={getStatusColor(selectedProperty.status)}>
                           {selectedProperty.status}
+                        </Badge>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Approval Status</Label>
+                        <Badge className={getApprovalStatusColor(selectedProperty.approvalStatus)}>
+                          {selectedProperty.approvalStatus || 'pending'}
                         </Badge>
                       </div>
                     </div>
@@ -576,7 +713,41 @@ export default function PropertiesPage() {
                       </div>
                     </div>
 
-                    {/* Actions */}
+                    {/* Approval Actions */}
+                    {selectedProperty.approvalStatus === 'pending' && (
+                      <div className="pt-4 border-t">
+                        <Label className="text-sm font-medium mb-2 block">Approval Actions</Label>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            onClick={() => handleApprovalChange(selectedProperty._id, 'approve')}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <IconCheck className="h-4 w-4 mr-2" />
+                            Approve Property
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              const reason = window.prompt('Enter rejection reason:');
+                              if (reason) handleApprovalChange(selectedProperty._id, 'reject', reason);
+                            }}
+                            variant="destructive"
+                          >
+                            <IconX className="h-4 w-4 mr-2" />
+                            Reject Property
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Rejection Reason */}
+                    {selectedProperty.approvalStatus === 'rejected' && selectedProperty.rejectionReason && (
+                      <div className="pt-4 border-t">
+                        <Label className="text-sm font-medium">Rejection Reason</Label>
+                        <p className="text-sm text-red-600 mt-1">{selectedProperty.rejectionReason}</p>
+                      </div>
+                    )}
+
+                    {/* Status Actions */}
                     <div className="flex flex-wrap gap-2 pt-4 border-t">
                       <Button
                         onClick={() => handleStatusChange(selectedProperty._id, "Active")}
@@ -584,7 +755,7 @@ export default function PropertiesPage() {
                         className="bg-green-600 hover:bg-green-700"
                       >
                         <IconCheck className="h-4 w-4 mr-2" />
-                        Approve
+                        Set Active
                       </Button>
                       <Button
                         onClick={() => handleStatusChange(selectedProperty._id, "Inactive")}
@@ -592,7 +763,7 @@ export default function PropertiesPage() {
                         variant="outline"
                       >
                         <IconX className="h-4 w-4 mr-2" />
-                        Deactivate
+                        Set Inactive
                       </Button>
                       <Button
                         onClick={() => 
@@ -613,10 +784,233 @@ export default function PropertiesPage() {
                         )}
                       </Button>
                       <Button
+                        onClick={() => handleEditProperty(selectedProperty)}
+                        variant="secondary"
+                      >
+                        <IconEdit className="h-4 w-4 mr-2" />
+                        Edit Details
+                      </Button>
+                      <Button
                         onClick={() => handleDeleteProperty(selectedProperty._id)}
                         variant="destructive"
                       >
                         Delete Property
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Property Edit Dialog */}
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Edit Property</DialogTitle>
+                </DialogHeader>
+                {editingProperty && (
+                  <div className="space-y-6">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <Label htmlFor="edit-title">Title</Label>
+                        <Input
+                          id="edit-title"
+                          value={editingProperty.title}
+                          onChange={(e) => setEditingProperty({
+                            ...editingProperty,
+                            title: e.target.value
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-propertyType">Property Type</Label>
+                        <Select
+                          value={editingProperty.propertyType}
+                          onValueChange={(value) => setEditingProperty({
+                            ...editingProperty,
+                            propertyType: value
+                          })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Apartment">Apartment</SelectItem>
+                            <SelectItem value="House">House</SelectItem>
+                            <SelectItem value="Villa">Villa</SelectItem>
+                            <SelectItem value="Cottage">Cottage</SelectItem>
+                            <SelectItem value="Commercial">Commercial</SelectItem>
+                            <SelectItem value="Land">Land</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-transactionType">Transaction Type</Label>
+                        <Select
+                          value={editingProperty.transactionType}
+                          onValueChange={(value) => setEditingProperty({
+                            ...editingProperty,
+                            transactionType: value
+                          })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Sale">Sale</SelectItem>
+                            <SelectItem value="Rent">Rent</SelectItem>
+                            <SelectItem value="Lease">Lease</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-price">Price</Label>
+                        <Input
+                          id="edit-price"
+                          type="number"
+                          value={editingProperty.price}
+                          onChange={(e) => setEditingProperty({
+                            ...editingProperty,
+                            price: parseFloat(e.target.value) || 0
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-area">Area</Label>
+                        <Input
+                          id="edit-area"
+                          type="number"
+                          value={editingProperty.area}
+                          onChange={(e) => setEditingProperty({
+                            ...editingProperty,
+                            area: parseFloat(e.target.value) || 0
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-areaUnit">Area Unit</Label>
+                        <Select
+                          value={editingProperty.areaUnit}
+                          onValueChange={(value) => setEditingProperty({
+                            ...editingProperty,
+                            areaUnit: value
+                          })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sq ft">sq ft</SelectItem>
+                            <SelectItem value="sq m">sq m</SelectItem>
+                            <SelectItem value="acres">acres</SelectItem>
+                            <SelectItem value="hectares">hectares</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-bedrooms">Bedrooms</Label>
+                        <Input
+                          id="edit-bedrooms"
+                          type="number"
+                          value={editingProperty.bedrooms}
+                          onChange={(e) => setEditingProperty({
+                            ...editingProperty,
+                            bedrooms: parseInt(e.target.value) || 0
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-bathrooms">Bathrooms</Label>
+                        <Input
+                          id="edit-bathrooms"
+                          type="number"
+                          value={editingProperty.bathrooms}
+                          onChange={(e) => setEditingProperty({
+                            ...editingProperty,
+                            bathrooms: parseInt(e.target.value) || 0
+                          })}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-description">Description</Label>
+                      <textarea
+                        id="edit-description"
+                        className="w-full min-h-[100px] p-2 border rounded-md"
+                        value={editingProperty.description}
+                        onChange={(e) => setEditingProperty({
+                          ...editingProperty,
+                          description: e.target.value
+                        })}
+                      />
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <Label htmlFor="edit-address">Address</Label>
+                        <Input
+                          id="edit-address"
+                          value={editingProperty.location.address}
+                          onChange={(e) => setEditingProperty({
+                            ...editingProperty,
+                            location: {
+                              ...editingProperty.location,
+                              address: e.target.value
+                            }
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-city">City</Label>
+                        <Input
+                          id="edit-city"
+                          value={editingProperty.location.city}
+                          onChange={(e) => setEditingProperty({
+                            ...editingProperty,
+                            location: {
+                              ...editingProperty.location,
+                              city: e.target.value
+                            }
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-state">State</Label>
+                        <Input
+                          id="edit-state"
+                          value={editingProperty.location.state}
+                          onChange={(e) => setEditingProperty({
+                            ...editingProperty,
+                            location: {
+                              ...editingProperty.location,
+                              state: e.target.value
+                            }
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-pincode">Pincode</Label>
+                        <Input
+                          id="edit-pincode"
+                          value={editingProperty.location.pincode}
+                          onChange={(e) => setEditingProperty({
+                            ...editingProperty,
+                            location: {
+                              ...editingProperty.location,
+                              pincode: e.target.value
+                            }
+                          })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-4 border-t">
+                      <Button onClick={handleSaveEdit} className="bg-blue-600 hover:bg-blue-700">
+                        Save Changes
+                      </Button>
+                      <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                        Cancel
                       </Button>
                     </div>
                   </div>

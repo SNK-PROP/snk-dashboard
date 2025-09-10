@@ -135,9 +135,51 @@ class ApiService {
 
   // Properties Management
   async getProperties(params = {}) {
-    const response = await this.api.get('/properties', { params });
-    const data = response.data;
+    // Use admin endpoint to get all properties regardless of approval status
+    let endpoint = '/properties';
+    let useAdminEndpoint = params.includeAll;
     
+    if (useAdminEndpoint) {
+      endpoint = '/properties/admin/all';
+      delete params.includeAll;
+    }
+    
+    try {
+      const response = await this.api.get(endpoint, { params });
+      const data = response.data;
+      
+      console.log(`API Response from ${endpoint}:`, {
+        propertiesCount: data.properties?.length || 0,
+        totalUsers: data.totalUsers,
+        pagination: data.pagination
+      });
+      
+      return this.transformPropertiesData(data);
+    } catch (error) {
+      // If admin endpoint fails due to auth, try regular endpoint as fallback
+      if (useAdminEndpoint && error.response?.status === 401) {
+        console.warn('Admin endpoint failed due to auth, falling back to regular endpoint');
+        try {
+          const response = await this.api.get('/properties', { params });
+          const data = response.data;
+          
+          console.log(`Fallback API Response from /properties:`, {
+            propertiesCount: data.properties?.length || 0,
+            totalUsers: data.totalUsers,
+            pagination: data.pagination
+          });
+          
+          return this.transformPropertiesData(data);
+        } catch (fallbackError) {
+          console.error('Both admin and regular endpoints failed:', fallbackError);
+          throw fallbackError;
+        }
+      }
+      throw error;
+    }
+  }
+
+  transformPropertiesData(data) {
     // Transform backend data structure to match dashboard expectations
     if (data.properties) {
       data.properties = data.properties.map(property => ({
@@ -160,6 +202,10 @@ class ApiService {
         updatedAt: property.updatedAt,
         // Status standardization
         status: property.status || 'Active',
+        approvalStatus: property.approvalStatus || 'pending',
+        approvedAt: property.approvedAt,
+        approvedBy: property.approvedBy,
+        rejectionReason: property.rejectionReason,
         isFeatured: Boolean(property.isFeatured)
       }));
     }
@@ -462,6 +508,27 @@ class ApiService {
     ].join('\n');
 
     return new Blob([csvContent], { type: 'text/csv' });
+  }
+
+  // Property Approval Management
+  async getPendingProperties(params = {}) {
+    const response = await this.api.get('/properties/admin/pending', { params });
+    return response.data;
+  }
+
+  async approveProperty(id) {
+    const response = await this.api.put(`/properties/admin/${id}/approve`);
+    return response.data;
+  }
+
+  async rejectProperty(id, reason) {
+    const response = await this.api.put(`/properties/admin/${id}/reject`, { reason });
+    return response.data;
+  }
+
+  async updatePropertyDetails(id, updateData) {
+    const response = await this.api.put(`/properties/admin/${id}/edit`, updateData);
+    return response.data;
   }
 }
 
