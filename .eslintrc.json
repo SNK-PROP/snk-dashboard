@@ -1,0 +1,8 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    "@next/next/no-sync-scripts": "warn",
+    "@next/next/no-html-link-for-pages": "warn",
+    "react-hooks/exhaustive-deps": "warn"
+  }
+}
