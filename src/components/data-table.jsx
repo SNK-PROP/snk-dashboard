@@ -127,7 +127,7 @@ const columns = [
   {
     id: "drag",
     header: () => null,
-    cell: ({ row }) => <DragHandle id={row.original.id} />,
+    cell: ({ row }) => <DragHandle id={row.original.id || row.original._id} />,
   },
   {
     id: "select",
@@ -323,6 +323,9 @@ function DraggableRow({ row }) {
 
 export function DataTable({ data: initialData, columns: customColumns }) {
   const [data, setData] = React.useState(() => initialData);
+
+  // Force use of custom columns if provided
+  const finalColumns = customColumns || columns;
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState({});
   const [columnFilters, setColumnFilters] = React.useState([]);
@@ -338,11 +341,16 @@ export function DataTable({ data: initialData, columns: customColumns }) {
     useSensor(KeyboardSensor, {})
   );
 
-  const dataIds = React.useMemo(() => data?.map(({ id }) => id) || [], [data]);
+  const dataIds = React.useMemo(() => data?.map((item) => item.id || item._id || item.key || Math.random().toString()) || [], [data]);
+
+  console.log("DataTable: data length:", data?.length);
+  console.log("DataTable: finalColumns length:", finalColumns?.length);
+  console.log("DataTable: using custom columns:", !!customColumns);
+  console.log("DataTable: dataIds:", dataIds);
 
   const table = useReactTable({
     data,
-    columns: customColumns || columns,
+    columns: finalColumns,
     state: {
       sorting,
       columnVisibility,
@@ -406,19 +414,34 @@ export function DataTable({ data: initialData, columns: customColumns }) {
               ))}
             </TableHeader>
             <TableBody className="**:data-[slot=table-cell]:first:w-8">
+              {console.log("DataTable: table.getRowModel().rows.length:", table.getRowModel().rows?.length)}
               {table.getRowModel().rows?.length ? (
-                <SortableContext
-                  items={dataIds}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {table.getRowModel().rows.map((row) => (
-                    <DraggableRow key={row.id} row={row} />
-                  ))}
-                </SortableContext>
+                customColumns ? (
+                  // Simple rows for custom columns (no drag/drop)
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  // Draggable rows for default columns
+                  <SortableContext
+                    items={dataIds}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {table.getRowModel().rows.map((row) => (
+                      <DraggableRow key={row.id} row={row} />
+                    ))}
+                  </SortableContext>
+                )
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={(customColumns || columns).length}
+                    colSpan={finalColumns.length}
                     className="h-24 text-center"
                   >
                     No results.

@@ -71,6 +71,7 @@ export default function BrokersPage() {
       }
 
       const response = await apiService.getBrokers(params);
+      console.log("Fetched brokers:", response.brokers[0]);
       setBrokers(response.brokers || []);
     } catch (error) {
       console.error("Error fetching brokers:", error);
